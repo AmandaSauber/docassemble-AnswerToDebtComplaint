@@ -1,0 +1,1083 @@
+---
+include:
+  - docassemble.AssemblyLine:assembly_line.yml
+---
+metadata:
+  title: >-
+    Answer to Debt Collection Complaint
+  short title: >-
+    Answer to complaint aos
+  description: |-
+    Answer to Debt Collection Lawsuit Complaint
+  can_I_use_this_form: |
+    If you are being sued for a debt, you can use this interview to respond and claim defenses.
+  before_you_start: |
+    Before you get started, you need to...
+  maturity: production
+  estimated_completion_minutes: 60
+  estimated_completion_delta: 30
+  LIST_topics: 
+    - "MO-00-00-00-00"
+  tags:
+    - "MO-00-00-00-00"
+  authors:
+    - Court Forms Online
+  original_form: []
+  original_form_published_on: ""
+  allowed_courts: []
+  typical_role: "defendant"
+  al_weaver_version: "1.10.3"
+  generated_on: "2024-07-31"
+  languages:
+    - en
+  jurisdiction: NAM-US-US+MN
+  review_date: 2024-07-31
+  form_titles:
+    - Answer to Debt Collection Complaint
+  form_numbers: []
+  update_notes: |
+---
+code: |
+  # This controls the default country and list of states in address field questions
+  AL_DEFAULT_COUNTRY = "US"
+---
+code: |
+  # This controls the default state in address field questions
+  AL_DEFAULT_STATE = "MN"
+---
+code: |
+  github_repo_name =  'docassemble-AnswerToComplaintAos'
+---
+code: |
+  interview_short_title = "Ask the court for a Answer to complaint aos"
+---
+code: |
+  al_form_type = "existing_case" 
+---
+objects:
+  - users: ALPeopleList.using(complete_attribute="complete")
+  - the_courts: ALCourtLoader.using(filename="Courts.xlsx")
+  - other_parties: ALPeopleList #.using(complete_attribute="complete",there_are_any=True)
+---
+sections:
+  - review_answer_to_complaint_aos: Review your answers
+---
+#################### Interview order #####################
+comment: |
+  Controls order and branching logic for questions specific to this form
+id: interview_order_answer_to_complaint_aos
+code: |
+  # Set the allowed courts for this interview
+  allowed_courts = []
+  nav.set_section("review_answer_to_complaint_aos")
+  user_role = "defendant"
+  user_ask_role = "defendant"
+  if ineligible_cases == True:
+    kick_out
+  if ineligible_cases == False:
+    trial_court_district
+  trial_court_district
+  display_court
+  docket_number
+  set_progress(16)
+  users_name
+  users[0].address.address
+  users[0].phone_number
+  set_parts(subtitle=str(users))
+  account_number
+  admit
+  set_progress(48)
+  defense_wrong_person
+  type_of_debt
+  last_action
+  exemptions
+  job_income
+  any_income # add logic to only show if job_income is No
+  bank_account #add logic to only show if any_income is No
+  reason_cannot_pay
+  own_car
+  multiple_cars #add logic that if own_car is Yes, ask this
+  primary_transportation #add logic that if multiple_cars is No, ask this
+  car_equity #add logic that if primary_transportation is Yes, then ask this
+  car_collateral #add logic that if car_equity is under 4k, ask this question
+  real_estate
+  own_home #add logic that if real_estate is Yes, ask this
+  other_real_estate #add logic that if own_home is Yes, ask this
+  farm #add logic that if other_real_estate is NO, ask this
+  home_equity_farm_yes #add logic that if farm is Yes, ask this
+  home_equity_farm_no #add logic that if farm is No, ask this
+  home_collateral ##add logic to ask this if farm is Yes AND equity is 900k or less OR if farm is No AND equity is 360k or less 
+  set_progress(64)
+  other_parties.gather()
+  original_creditor
+  attorneys.gather()
+  attorneys[0].address.address
+  set_progress(32)
+  attorneys[0].fax_number
+  date_answer
+  process_server
+  service_method #add logic to only show if process_server is 'I will'
+  interview_order_answer_to_complaint_aos = True
+---
+###################### Main order ######################
+comment: |
+  This block includes the logic for standalone interviews.
+  Delete mandatory: True to include in another interview
+mandatory: True
+code: |
+  al_intro_screen
+  answer_to_complaint_aos_intro
+  interview_order_answer_to_complaint_aos
+  signature_date
+  # Store anonymous data for analytics / statistics
+  store_variables_snapshot(
+      persistent=True,
+      data={
+          "zip": showifdef("users[0].address.zip"),
+          "reached_interview_end": True,
+      },
+  )
+  answer_to_complaint_aos_download
+---
+id: Answer_to_Debt_Collection_Complaint
+continue button field: answer_to_complaint_aos_intro
+question: |
+  Answer to Debt Collection Complaint
+subquestion: |
+  If you are being sued for a debt, you can use this interview to respond and claim defenses.
+  
+  This interview helps create an Answer to a debt collection Complaint, and it gives instructions on what to do next.
+
+  This interview does not give legal advice. It does not address every possible legal defense. Using this program does not mean you have an attorney-client relationship.
+
+  You alone are responsible for the outcome of your case. If you need legal advice, you should contact a lawyer.
+
+  Most people take about 20 minutes to complete this interview.
+  
+#add a 'do you agree' button w/logic to kick out if answer is 'no'.
+---
+id: ineligible cases
+question: |
+  Is the debt for this lawsuit from:
+subquestion: |
+
+    - Child support
+    - Spousal support
+    - Taxes
+    - Student loans?
+yesno: ineligible_cases
+
+#add logic to kick out if answer is 'yes' - how do I make this solely a statement and add the Exit button, rather than displaying as a field to collect data? 
+---
+mandatory: True
+code: |
+  kick_out
+---
+id: kick out
+event: kick_out
+question: |
+  You are not eligible for this interview.
+subquestion: |
+  If your debt is for child support, spousal support, taxes or student loans, this program can not help you.
+
+  Click "Exit" to leave this program and go to LawHelpMN.org.
+
+  If you made a mistake, click "undo."
+buttons:
+  - Exit: exit
+    url: https://lawhelpmn.org
+---
+code: |
+  if the_courts.county_has_one_court(the_county):
+    my_court = the_courts.county_court("my_court", the_county)
+  else:
+    court_index
+    my_court = the_courts.as_court("my_court", court_index)
+---
+id: district and county
+question: |
+  What court was your case filed in?
+fields:
+  - Judicial District: trial_court_district
+    choices: 
+      - 1st
+      - 2nd
+      - 3rd
+      - 4th
+      - 5th
+      - 6th
+      - 7th
+      - 8th
+      - 9th 
+      - 10th
+    help: |
+       There are 10 judicial districts in Minnesota.
+       **1st**: McLeod, Sibley, Carver, Scott, Dakota, Le Sueur, Goodhue
+       **2nd**: Ramsey    
+       **3rd**: Rice, Waseca, Steele, Dodge, Olmsted, Wabasha, Winona, Freeborn, Mower, Fillmore, Houston
+       **4th**: Hennepin
+       **5th**: Lincoln, Lyon, Redwood, Brown, Nicollet, Pipestone, Murray, Cottonwood, Watonwan, Blue Earth, Rock, Nobles, Jackson, Martin, Faribault
+       **6th**: St. Louis, Lake, Cook, Carlton
+       **7th**: Clay, Becker, Otter Tail, Wadena, Douglas, Todd, Morrison, Mille Lacs, Stearns, Benton
+       **8th**: Wilkin, Grant, Traverse, Big Stone, Stevens, Pope, Swift, Lac qui Parle, Kandiyohi, Chippewa, Meeker, Yellow Medicine, Renville
+       **9th**: Kittson, Roseau, Lake of the Woods, Marshall, Beltrami, Koochiching, Pennington, Red Lake, Polk, Clearwater, Norman, Mahnomen, Hubbard, Cass, Itasca, Crow Wing, Aitkin
+       **10th**: Pine, Kanabec, Sherburne, Isanti, Chisago, Anoka, Wright, Washington
+    required: False
+  - Trial court state: trial_court_state
+    code: |
+      states_list()
+    default: Minnesota
+    required: False
+  - Court County: the_county
+    code: sorted(the_courts.county_list())
+    required: False
+---
+question: |
+  There is more than one court in your county. Pick the court below.
+fields:
+  - "no label": court_index
+    code: the_courts.matching_courts_in_county(the_county)
+---
+continue button field: display_court
+question: |
+  You selected "${ my_court }"
+subquestion: |
+  ${ my_court.address.block() }
+---
+code: |
+  users[0].name.first
+  users[0].name.last
+  users[0].name.middle
+  users[0].name.suffix
+  users[0].address.address
+  users[0].phone_number
+  users[0].complete = True
+---
+#sets:
+#  - users[0].name.first
+#  - users[0].name.last
+#  - users[0].name.middle
+#  - users[0].name.suffix  
+continue button field: users_name
+id: User name
+question: |
+  What is your name?
+fields:
+  - code: |
+      users[0].name_fields()
+---
+id: users address
+question: |
+  What is your address?
+fields:
+  - code: |
+      users[0].address_fields(country_code=AL_DEFAULT_COUNTRY, default_state=AL_DEFAULT_STATE)
+---
+id: users phone number
+question: |
+  What is your phone number?
+fields:
+  - Phone Number: users[0].phone_number
+---
+id: account number
+question: |
+  Please enter the account number for this debt, if you have one. 
+subquestion: |
+  If you have one, it should be mentioned somewhere in the complaint.
+fields:
+  - "Account number": account_number
+    maxlength: 20
+    required: False
+---
+id: Admit
+question: |
+  Admit/Deny
+subquestion: |
+  A Complaint is made up of a number of "paragraphs." Each paragraph should be labeled with a number. When you answer a Complaint, you do not answer it all at once. Instead, you respond to each paragraph, one by one. Read each paragraph carefully and <b>don't Admit the paragraph unless you know that all the claims are true</b>. Answer every paragraph.
+  
+  For example, the first paragraph may just say what your name is, like this: "<i>Defendant's name is ${ users[0].name }</i>".
+
+  If it gets your name right, then you "Admit" that the paragraph is true. If it gets your name wrong, you can "Deny" that it is true.
+  
+fields:
+  - "<b>I admit the allegations in these paragraphs of the complaint:</b>": admit
+    maxlength: 14
+    required: False
+    label above field: True
+  - "<b>I deny the allegations in these paragraphs of the complaint:</b>": deny
+    maxlength: 14
+    required: False
+    label above field: True
+  - "<b>I do not have enough information to form a belief as to the truth, and therefore deny the allegations contained in these paragraphs:</b>": insufficient_info
+    maxlength: 14
+    required: False
+    label above field: True
+---
+id: Defenses
+question: |
+  Affirmative Defenses
+subquestion: |
+  A "defense" is a legal reason why a debt is not owed, or can't be collected from you.
+  
+  For example, if you already paid the debt, that is a defense. If the debt is too old, that is also a defense.
+  
+  I claim the following Affirmative Defense(s):
+fields:
+  - "Service of process was insufficient": defense_insufficient_service
+    datatype: yesnowide
+  - "Plaintiff has sued the wrong person.": defense_wrong_person
+    datatype: yesnowide
+  - "I have already paid the debt at issue.": defense_paid
+    datatype: yesnowide
+  - "I don't owe all of the money alleged.": defense_dont_owe
+    datatype: yesnowide
+  - "Plaintiff is not my creditor.": defense_not_creditor
+    datatype: yesnowide
+  - "The debt at issue has been discharged by bankruptcy.": defense_bankruptcy
+    datatype: yesnowide
+  - "I did not sign up for this credit card.": defense_credit_card
+    datatype: yesnowide
+  - "Someone used my name and identity without my permission.": defense_id_theft
+    datatype: yesnowide
+  - "There are charges on this account that I did not agree to.": defense_unagreeable_charges
+    datatype: yesnowide
+  - "I do not recognize the Plaintiff and I never borrowed money from the Plaintiff. Plaintiff has not shown why it has a right to sue me on the alleged debt and the case should be dismissed. Minn.R.Civ.P 17.01.": defense_dont_know_plaintiff
+    datatype: yesnowide
+---
+id: SOL
+question: |
+  Finally, let's see if you can use the "Statute of Limitations" defense.
+subquestion: |
+  The Statute of Limitations is a deadline for when anyone can start a lawsuit on the debt by serving you with a Summons and Complaint.
+
+  Different kinds of debt have different deadlines. The "clock" for the deadline started ticking the last time you:
+
+    - paid part of the debt,
+    - made a written promise to pay the debt, OR
+    - used the account in any way.
+   
+   Whenever you do any of those things, the deadline clock gets reset. The plaintiff then gets more time to file the lawsuit.
+fields:
+  - What kind of debt do you have?: type_of_debt
+    input type: radio
+    choices:
+      - Credit card
+      - Cell phone
+      - Car loan
+      - Other
+    #none of the above: False
+  - Explain: other_debt
+    show if:
+      variable: type_of_debt
+      is: Other
+#add logic on each type to explain the SOL timeframe
+    
+#  - "Plaintiff’s claims are barred by the applicable statute of limitations.": defense_SOL   
+#    datatype: yesnowide
+    #add this only on the attachments block
+
+#  - "If this box is checked, Plaintiff’s claims are barred by the applicable statute of limitations.": claims_barred
+#    datatype: yesnowide
+#    show if: defense_SOL
+    #I should just be able to set this up on the attachment block and not show it here.
+---
+id: last action 
+question: |
+  When was the last time you:
+subquestion: |
+
+    - used the account
+    - made a payment, OR
+    - made a written promise to pay?
+fields:
+  - "no label": last_action
+    datatype: checkboxes
+    choices: 
+      - Less than 6 years ago: less_than_6_years # add logic to follow up with: In that case, the Statute of Limitations defense does not apply.
+      - 6 or more years ago: 6_or_more_years # add logic to follow up with: In that case, you can use the Statute of Limitations defense.
+      # add logic in attachments block to check this box if this is answered
+    none of the above: False
+---
+#this snippet seems to have removed plaintiff's address - add that as a complete attribute to the object 
+id: original creditor
+question: |
+  Is the Plaintiff the "original creditor" for this debt?
+yesnomaybe: original_creditor
+#fields:
+#  - "no label": original_creditor
+    #datatype: checkboxes
+    #choices:
+    #  - Yes: yes
+    #  - No: no
+    #  - Not Sure: not_sure
+    #none of the above: False
+    # add logic on No and Not Sure to say: If the plaintiff is not the original creditor, they have to follow strict rules to prove they really own the debt. Try to talk to a lawyer about this. You should still finish making your Answer today. If you try to talk to a lawyer before you serve and file your Answer, make sure you meet the 20 day deadline!
+---
+id: who will be on this form
+generic object: ALPeopleList
+question: |
+  Does the Plaintiff have an ${noun_plural(x.object_name())}?
+fields:
+  - no label: x.there_are_any
+    datatype: yesnoradio
+---
+generic object: ALPeopleList
+id: any other people
+question: |
+  Are there any other ${ noun_plural(x.object_name()) }?
+fields:
+  - no label: x.there_is_another
+    datatype: yesnoradio
+---
+#Can I just set this to today's date on the attachment block?
+id: Date answer
+question: |
+  Date answer
+fields:
+  - "Date answer": date_answer
+    maxlength: 18
+---
+id: process server
+question: |
+  Who will be the process server?
+field: process_server
+buttons:
+  - I will
+  - Someone else # add logic to collect this person's name and address, if known and THEN continue to the service_method logic
+  - Not sure yet
+---
+#add logic so this only appears if process_server is 'I will' and later 'someone else'
+id: service method
+question: |
+  Will you Serve the Answer through the mail, through fax, or in person?
+field: service_method
+buttons:
+  - Mail #add logic to follow up with: What city will amanda sauber mail the Answer from? Leave this blank if you do not know. You can write it in later. AND THEN: In what county will amanda sauber get the Affidavit of Service Notarized? Do not answer if you do not know. You can write it in later.
+  - Fax #add logic to follow up with: What fax number will amanda sauber send the Answer to? Leave this blank if you do not know. You can write it in later. AND THEN: In what county will amanda sauber get the Affidavit of Service Notarized? Do not answer if you do not know. You can write it in later.
+  - In Person #add logic to follow up with: In what county will amanda sauber get the Affidavit of Service Notarized? Do not answer if you do not know. You can write it in later.
+  - Unsure
+---
+id: exempt income and assets
+continue button field: exemptions
+question: |
+  Exempt Income and Assets
+subquestion: |
+  Even if the plaintiff wins in court, there are some income and assets they can never take. These are called "Exempt" income and assets.
+  
+  Let's find out if your income and assets are Exempt.
+fields: 
+  - Do you currently get money from any need-based government programs?: need_based
+    datatype: checkboxes
+    choices:
+      - SSI - Supplemental Security Income: ssi
+      - MFIP - Minnesota Family Investment Program: mfip
+      - MFIP Diversionary Work Program: dwp
+      - Work Participation Cash Benefit: cash
+      - GA - General Assistance: ga
+      - EA - Emergency Assistance: ea
+      - MA - Medical Assistance: ma
+      - EGA - Emergency General Assistance: ega
+      - MSA - Minnesota Supplemental Aid: msa
+      - MSA-EA - MSA Emergency Assistance: msa_ea
+      - Food Support: food_support
+      - MinnesotaCare: mncare
+      - Medicare Part B Premium Payments: partb
+      - Medicare Part D Extra Help: partd
+      - Energy or Fuel Assistance: energy_asst
+      - Other Exempt Income: other_exempt  ##add logic to include a text box on this option
+    label above field: True
+  - Do you get income from one or more Exempt, non-need-based sources?: non_need_based
+    datatype: checkboxes
+    choices:
+      - Workers Compensation: work_comp
+      - Unemployment: unemployment
+      - Veteran Benefits: vet_benefits
+      - Social Security: soc_sec
+      - Child Support: child_support
+      - Damages from an accident: accident_damages
+      - Disability payments: disability
+      - Retirement pension or annuity: pension_or_annuity
+      - Life insurance payments: life_ins
+      - Money earned by any child of yours who is under age 18: money_for_kids
+      - Money from a claim for damage or destruction of property: property_damages
+      - Death benefits: death_benefits
+    label above field: True
+---
+id: job income
+question: |
+  Do you get any money from a job?
+fields:
+  - "no label": job_income
+    datatype: yesnoradio
+    #add logic on 'Yes': It looks like some of your income may be Exempt, but not all of it. - check if this is always the response or is this partial exemption based on my previous selections? 
+# add logic that if there's no income, the cover letter says so 
+---
+#  add logic on 'No' to job income
+id: any income
+question: |
+  Do you have any income at all?
+fields:
+  - "no label": any_income
+    help:
+      - Income can be money from any of the following sources (this is not a complete list):
+      - Self employment income
+      - Farming income
+      - Alimony or spousal support
+      - Investment income
+      - Interest or dividends from property or real estate
+      - Stocks or bonds
+      - Income from rental property
+      - Pension, PERS or 401(k) retirement benefits
+      - Social Security*
+      - SSI*
+      - Disability Benefits*
+      - Veterans Benefits*
+      - Child Support*
+      - MN Family Investment Program (MFIP)*
+      - General Assistance (GA)*
+      - Other cash assistance from the Department of Human Services
+      - Workers Comp*
+      - Job / Employment*
+      - Unemployment benefits*
+    datatype: yesnoradio
+---
+# add logic that if the user has no income, then ask:
+id: bank account
+question: |
+  Do you have any money in a bank account that <b>doesn't</b> come from any of the following?
+subquestion: |
+  
+  - SSI - Supplemental Security Income
+  - MFIP - Minnesota Family Investment Program
+  - MFIP Diversionary Work Program
+  - Work Participation Cash Benefit
+  - GA - General Assistance
+  - EA - Emergency Assistance
+  - MA - Medical Assistance
+  - EGA - Emergency General Assistance
+  - MSA - Minnesota Supplemental Aid
+  - MSA-EA - MSA Emergency Assistance
+  - Food Support
+  - MinnesotaCare
+  - Medicare Part B Premium Payments
+  - Medicare Part D Extra Help
+  - Energy or Fuel Assistance
+  - Child Support
+  - Social Security
+  - Workers' Compensation
+  - Unemployment Benefits
+  - Veterans' Benefits
+  - Income from a minor child
+  - Life insurance payments
+  - Money from an accident
+  - Money from disability
+  - Retirement pension
+  - Retirement annuity
+  - Death benefits
+  - Money from a claim for damaged or destroyed property
+  
+  If you are not sure, answer "Yes." 
+fields:
+  - "no label": bank_account
+    datatype: yesnoradio
+# add logic to follow up with: Do you expect your income to stay the same for the long term future? AND THEN: If so, do you want your letter to say so? ##incorporate attachments block info... 
+---
+#not sure I need this question given the logic above - can I just pull this in on the attachments block? How to best do that??? 
+id: Cant pay reason
+question: |
+  Inability to pay 
+subquestion: |
+  Please be advised that regardless of any merits to your case, I have no ability to pay this sum because:
+fields:
+  - "no label": reason_cannot_pay
+    maxlength: 100
+    input type: area
+  - note: |
+      In addition, any money in my bank account(s) is exempt.
+      
+      I am unable to voluntarily pay this sum given my present financial circumstances. All of my current income is used simply to meet basic living needs. I do not expect my financial circumstances to improve at any time in the foreseeable future.
+---
+# does this always appear or only based on how the user answers the income exemption questions?
+id: exempt assets - cars
+question: |
+  Next, let's see if any of your assets other than money are Exempt.
+subquestion: |
+  Do you own a car or other motor vehicle?
+fields:
+  - "no label": own_car
+    datatype: yesnoradio
+---
+#add logic that if own_car is 'Yes', ask this
+id: multiple_cars
+question: |
+  Do you own more than one vehicle?
+fields:
+  - "no label": multiple_cars
+    datatype: yesnoradio
+#add logic that if Yes, then  'your motor vehicle assets may not be Exempt'.
+---
+#add logic that if multiple_cars is No, then ask this
+id: primary transportation
+question: |
+  Is the vehicle your primary source of transportation?
+fields:
+  - "no label": primary_transportation
+    datatype: yesnoradio
+#add logic that if No, 'your motor vehicle assets may not be Exempt.
+---
+#Add logic that if primary_transportation is Yes, then ask this
+id: car_equity
+question: |
+  How much Equity do you have in your motor vehicle?
+subquestion: |
+  Up to $4,400 of the "Equity" you have in your motor vehicle is Exempt.
+field: car_equity
+buttons:
+  - More than $4,400: over_4k
+  - $4,400 or less: under_4k
+  - I do not know: unknown_car_equity
+#if exempt, the letter should say so.
+---
+#add logic that if car_equity is under 4k, ask this question
+id: car_collateral
+question: |
+  Is your debt related to payments for your motor vehicle(s)? Or, did you use the motor vehicle(s) as "collateral" for the debt?
+fields: 
+  - "no label": car_collateral 
+    datatype: yesnoradio
+#add logic that if Yes, 'Your motor vehicle is not Exempt if the debt is for the motor vehicle.'
+---
+id: real estate
+question: |
+  Do you own any real estate, including your home?
+subquestion: |  
+  Making mortgage payments counts as owning your home.
+fields:
+  - "no label": real_estate
+    datatype: yesnoradio
+    #  if 'Yes': Do you own any real estate apart from your home? and THEN if 'No': Up to $360,000 of your Equity in your home is Exempt. If your home is a farm and you use it for agriculture, up to $900,000 of your Equity is Exempt. Is your home a farm, used for agriculture? If you live and work on your own farm, and own no other real estate, you can choose "no".
+---
+#add logic to ask this if real_estate is Yes
+id: own_home
+question: |
+  Do you own your home?
+fields:
+  - "no label": own_home
+    datatype: yesnoradio
+---
+#add logic to ask this if own_home is Yes
+id: other real estate
+question: |
+  Do you own any real estate apart from your home?
+fields:
+  - "no label": other_real_estate
+    datatype: yesnoradio
+---
+#add logic to ask this if other_real_estate is NO
+id: farm
+question: |
+  Is your home a farm, used for agriculture?
+subquestion: |
+  Up to $360,000 of your Equity in your home is Exempt. If your home is a farm and you use it for agriculture, up to $900,000 of your Equity is Exempt.
+fields:
+  - "no label": farm
+    datatype: yesnoradio
+---
+#add logic to ask this if Farm is Yes
+id: farm yes
+question: |
+  How much Equity do you have in your home?
+field: home_equity_farm_yes
+buttons:
+  - More than $900,000: more_than_900
+  - $900,000 or less: less_than_900
+  - I do not know: equity_unknown_farm_yes
+---
+#add logic to ask this if Farm is NO
+id: farm no
+question: |
+  How much Equity do you have in your home?
+field: home_equity_farm_no
+buttons:
+  - More than $360,000: more_than_360
+  - $360,000 or less: less_than_360
+  - I do not know: equity_unknown_farm_no
+---
+#add logic to ask this if farm is Yes AND equity is 900k or less OR if farm is No AND equity is 360k or less 
+id: collateral for home
+question: |
+  Is your debt related to payments for your home? Or, did you use your home as "collateral" for the debt?
+fields:
+  - "no label": home_collateral
+    datatype: yesnoradio
+#add logic that if Yes to collateral, then 'your home Equity is not Exempt'.
+---
+id: preview answer_to_complaint_aos
+question: |
+  Preview your form before you sign it
+subquestion: |
+  Here is a preview of the form you will sign on the next page.   
+  
+  ${ al_court_bundle.as_pdf(key='preview') }
+
+  Click the image to open it in a new tab. Click the "Edit answers" button
+  to edit your answers.
+
+  ${ action_button_html(url_action('review_answer_to_complaint_aos'), label='Edit answers', color='info') }
+  
+  Remember to come back to this window to continue and sign your form.
+continue button field: answer_to_complaint_aos_preview_question    
+---
+code: |
+  signature_fields = []
+---
+code: |
+  # This is a placeholder for the addresses that will be searched
+  # for matching address to court. Edit if court venue is based on 
+  # a different address than the user's
+  [user.address.address for user in users.complete_elements()]
+  addresses_to_search = [user.address for user in users.complete_elements()]
+---
+id: answer to complaint aos review screen
+event: review_answer_to_complaint_aos
+question: |
+  Review your answers
+review:
+  - Edit: trial_court_district
+    button: |
+      **Trial court district**:
+      ${ trial_court_district }
+  - Edit: docket_number
+    button: |
+      **Docket number**:
+      ${ docket_number }
+  - Edit: the_county
+    button: |
+      **The county**:
+      ${ the_county }
+  - Edit: attorneys.revisit
+    button: |
+      **Attorneys**
+
+      % for item in attorneys:
+        * ${ item }
+      % endfor
+  - Edit: date_answer
+    button: |
+      **Date answer**:
+      ${ date_answer }
+  - Edit: other_parties.revisit
+    button: |
+      **Other parties**
+
+      % for item in other_parties:
+        * ${ item }
+      % endfor
+  - Edit: users.revisit
+    button: |
+      **Users**
+
+      % for item in users:
+        * ${ item }
+      % endfor
+  - Edit: user_address
+    button: |
+      **User address**:
+      ${ user_address }
+  - Edit: user_city_state_zip
+    button: |
+      **User city state zip**:
+      ${ user_city_state_zip }
+  - Edit: admit
+    button: |
+      **Admit**:
+      ${ admit }
+  - Edit: deny
+    button: |
+      **Deny**:
+      ${ deny }
+  - Edit: insufficient_info
+    button: |
+      **Insufficient info**:
+      ${ insufficient_info }
+  - Edit: defense_insufficient_service
+    button: |
+      **Defense insufficient service**:
+      ${ word(yesno(defense_insufficient_service)) }
+  - Edit: defense_wrong_person
+    button: |
+      **Defense wrong person**:
+      ${ word(yesno(defense_wrong_person)) }
+  - Edit: defense_paid
+    button: |
+      **Defense paid**:
+      ${ word(yesno(defense_paid)) }
+  - Edit: affirmative_defense4
+    button: |
+      **Affirmative defense4**:
+      ${ word(yesno(affirmative_defense4)) }
+  - Edit: defense_not_creditor
+    button: |
+      **Defense not creditor**:
+      ${ word(yesno(defense_not_creditor)) }
+  - Edit: defense_bankruptcy
+    button: |
+      **Defense bankruptcy**:
+      ${ word(yesno(defense_bankruptcy)) }
+  - Edit: defense_credit_card
+    button: |
+      **Defense credit card**:
+      ${ word(yesno(defense_credit_card)) }
+  - Edit: affirmative_defense8
+    button: |
+      **Affirmative defense8**:
+      ${ word(yesno(affirmative_defense8)) }
+  - Edit: defense_unagreeable_charges
+    button: |
+      **Defense unagreeable charges**:
+      ${ word(yesno(defense_unagreeable_charges)) }
+  - Edit: defense_dont_know_plaintiff
+    button: |
+      **Defense dont know plaintiff**:
+      ${ word(yesno(defense_dont_know_plaintiff)) }
+  - Edit: defense_SOL
+    button: |
+      **Defense sol**:
+      ${ word(yesno(defense_SOL)) }
+  - Edit: claims_barred
+    button: |
+      **Claims barred**:
+      ${ word(yesno(claims_barred)) }
+  - Edit: account_number
+    button: |
+      **Account number**:
+      ${ account_number }
+  - Edit: reason_cannot_pay
+    button: |
+      **Reason cannot pay**:
+      ${ reason_cannot_pay }
+---
+continue button field: attorneys.revisit
+question: |
+  Edit attorneys
+subquestion: |
+  ${ attorneys.table }
+
+  ${ attorneys.add_action() }
+---
+table: attorneys.table
+rows: attorneys
+columns:
+  - Name: |
+      row_item.name.full() if defined("row_item.name.first") else ""
+  - Address: |
+      row_item.address.block() if defined("row_item.address.address") else ""
+  - Fax number: |
+      row_item.fax_number if defined("row_item.fax_number") else ""
+edit:
+  - name.first
+  - address.address
+  - fax_number
+confirm: True
+
+---
+continue button field: other_parties.revisit
+question: |
+  Edit other_parties
+subquestion: |
+  ${ other_parties.table }
+
+  ${ other_parties.add_action() }
+---
+table: other_parties.table
+rows: other_parties
+columns:
+  - Name: |
+      row_item.name.full() if defined("row_item.name.first") else ""
+edit:
+  - name.first
+confirm: True
+
+---
+continue button field: users.revisit
+question: |
+  Edit users
+subquestion: |
+  ${ users.table }
+
+  ${ users.add_action() }
+---
+table: users.table
+rows: users
+columns:
+  - Name: |
+      row_item.name.full() if defined("row_item.name.first") else ""
+  - Address: |
+      row_item.address.block() if defined("row_item.address.address") else ""
+  - Phone number: |
+      row_item.phone_number if defined("row_item.phone_number") else ""
+edit:
+  - name.first
+  - address.address
+  - phone_number
+confirm: True
+
+---
+id: download answer_to_complaint_aos
+event: answer_to_complaint_aos_download
+question: |
+  All done
+subquestion: |
+  Thank you ${users}. Your form is ready to download and deliver.
+  
+  View, download and send your form below. Click the "Edit answers" button to fix any mistakes.
+
+  ${ action_button_html(url_action('review_answer_to_complaint_aos'), label='Edit answers', color='info') }
+  
+  
+  ${ al_user_bundle.download_list_html() }
+  
+
+  ${ al_user_bundle.send_button_html(show_editable_checkbox=False) }
+
+progress: 100
+---
+# ALDocument objects specify the metadata for each template
+objects:
+  - answer_to_complaint_aos_Post_interview_instructions: ALDocument.using(title="Instructions", filename="answer_to_complaint_aos_next_steps.docx", enabled=True, has_addendum=False)
+  - answer_to_complaint_aos: ALDocument.using(title="Answer to complaint aos", filename="answer_to_complaint_aos", enabled=True, has_addendum=False, )
+  - answer_to_complaint_form: ALDocument.using(title="Answer to complaint form", filename="answer_to_complaint_form", enabled=True, has_addendum=False, )
+  - answer_to_complaint_letter: ALDocument.using(title="Answer to complaint letter", filename="answer_to_complaint_letter", enabled=True, has_addendum=False, )
+---
+# Bundles group the ALDocuments into separate downloads, such as for court and for the user
+objects:
+  - al_user_bundle: ALDocumentBundle.using(elements=[answer_to_complaint_aos_Post_interview_instructions, answer_to_complaint_aos, answer_to_complaint_form, answer_to_complaint_letter], filename="answer_to_complaint_aos", title="All forms to download for your records", enabled=True)
+  - al_court_bundle: ALDocumentBundle.using(elements=[answer_to_complaint_aos, answer_to_complaint_form, answer_to_complaint_letter],  filename="answer_to_complaint_aos", title="All forms to deliver to court", enabled=True)
+---
+# Each attachment defines a key in an ALDocument. We use `i` as the placeholder here so the same template is 
+# used for "preview" and "final" keys, and logic in the template checks the value of 
+# `i` to show or hide the user's signature
+attachment:
+  name: Post-interview-Instructions
+  filename: answer_to_complaint_aos_next_steps
+  docx template file: answer_to_complaint_aos_next_steps.docx
+  variable name: answer_to_complaint_aos_Post_interview_instructions[i]
+  skip undefined: True
+  tagged pdf: True
+---
+attachment:
+  name: answer to complaint aos
+  filename: answer_to_complaint_aos
+  variable name: answer_to_complaint_aos[i]
+  skip undefined: True
+  pdf template file: answer_to_complaint_aos.pdf
+  fields:
+      - "trial_court_district": ${ trial_court_district }
+      - "trial_court_district": ${ trial_court_district }
+      - "docket_number": ${ docket_number }
+      - "docket_number": ${ docket_number }
+      - "the_county": ${ the_county }
+      - "the_county": ${ the_county }
+      - "attorneys_name": ${ attorneys[0] }
+      - "attorneys_name": ${ attorneys[0] }
+      - "attorneys_name": ${ attorneys[0] }
+      - "attorneys_address_address": ${ attorneys[0].address.address }
+      - "attorneys_address_address": ${ attorneys[0].address.address }
+      - "attorneys_address_line_two": ${ attorneys[0].address.line_two() }
+      - "attorneys_address_line_two": ${ attorneys[0].address.line_two() }
+---
+attachment:
+  name: answer to complaint form
+  filename: answer_to_complaint_form
+  variable name: answer_to_complaint_form[i]
+  skip undefined: True
+  pdf template file: answer_to_complaint_form.pdf
+  fields:
+      - "trial_court_district": ${ trial_court_district }
+      - "trial_court_district": ${ trial_court_district }
+      - "docket_number": ${ docket_number }
+      - "docket_number": ${ docket_number }
+      - "the_county": ${ the_county }
+      - "the_county": ${ the_county }
+      - "date_answer": ${ date_answer }
+      - "date_answer": ${ date_answer }
+      - "date_answer": ${ date_answer }
+      - "other_parties1_name": ${ other_parties[0] }
+      - "other_parties1_name": ${ other_parties[0] }
+      - "other_parties1_name": ${ other_parties[0] }
+      - "user_name": ${ users[0] }
+      - "users1_name": ${ users[0] }
+      - "user_name": ${ users[0] }
+      - "users1_name": ${ users[0] }
+      - "users1_name": ${ users[0] }
+      - "user_name": ${ users[0] }
+      - "user_name": ${ users[0] }
+      - "user_name": ${ users[0] }
+      - "user_name": ${ users[0] }
+      - "user_name": ${ users[0] }
+      - "users1_name": ${ users[0] }
+      - "user_address": ${ user_address }
+      - "user_address": ${ user_address }
+      - "users1_address_address": ${ users[0].address.address }
+      - "users1_address_address": ${ users[0].address.address }
+      - "user_city_state_zip": ${ user_city_state_zip }
+      - "user_city_state_zip": ${ user_city_state_zip }
+      - "users1_address_line_two": ${ users[0].address.line_two() }
+      - "users1_address_line_two": ${ users[0].address.line_two() }
+      - "users1_phone_number": ${ users[0].phone_number }
+      - "user_phone": ${ users[0].phone_number }
+      - "users1_phone_number": ${ users[0].phone_number }
+      - "user_phone": ${ users[0].phone_number }
+      - "admit": ${ admit }
+      - "deny": ${ deny }
+      - "insufficient_info": ${ insufficient_info }
+      - "defense_insufficient_service": ${ defense_insufficient_service }
+      - "defense_wrong_person": ${ defense_wrong_person }
+      - "defense_paid": ${ defense_paid }
+      - "affirmative_defense4": ${ affirmative_defense4 }
+      - "defense_not_creditor": ${ defense_not_creditor }
+      - "defense_bankruptcy": ${ defense_bankruptcy }
+      - "defense_credit_card": ${ defense_credit_card }
+      - "affirmative_defense8": ${ affirmative_defense8 }
+      - "defense_unagreeable_charges": ${ defense_unagreeable_charges }
+      - "defense_dont_know_plaintiff": ${ defense_dont_know_plaintiff }
+      - "defense_SOL": ${ defense_SOL }
+      - "claims_barred": ${ claims_barred }
+---
+attachment:
+  name: answer to complaint letter
+  filename: answer_to_complaint_letter
+  variable name: answer_to_complaint_letter[i]
+  skip undefined: True
+  pdf template file: answer_to_complaint_letter.pdf
+  fields:
+      - "attorneys_name": ${ attorneys[0] }
+      - "attorneys_name": ${ attorneys[0] }
+      - "attorneys_name": ${ attorneys[0] }
+      - "attorneys_address_address": ${ attorneys[0].address.address }
+      - "attorneys_address_address": ${ attorneys[0].address.address }
+      - "attorneys_address_line_two": ${ attorneys[0].address.line_two() }
+      - "attorneys_address_line_two": ${ attorneys[0].address.line_two() }
+      - "date_answer": ${ date_answer }
+      - "date_answer": ${ date_answer }
+      - "date_answer": ${ date_answer }
+      - "other_parties1_name": ${ other_parties[0] }
+      - "other_parties1_name": ${ other_parties[0] }
+      - "other_parties1_name": ${ other_parties[0] }
+      - "user_name": ${ users[0] }
+      - "users1_name": ${ users[0] }
+      - "user_name": ${ users[0] }
+      - "users1_name": ${ users[0] }
+      - "users1_name": ${ users[0] }
+      - "user_name": ${ users[0] }
+      - "user_name": ${ users[0] }
+      - "user_name": ${ users[0] }
+      - "user_name": ${ users[0] }
+      - "user_name": ${ users[0] }
+      - "users1_name": ${ users[0] }
+      - "attorneys_fax_number": ${ attorneys[0].fax_number }
+      - "account_number": ${ account_number }
+      - "reason_cannot_pay": ${ reason_cannot_pay }
+
+
+
