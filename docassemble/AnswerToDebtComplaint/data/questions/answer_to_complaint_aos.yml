@@ -89,11 +89,13 @@ code: |
   set_progress(48)
   defense_wrong_person
   type_of_debt
-  last_action
   exemptions
-  job_income
-  any_income # add logic to only show if job_income is No
-  bank_account #add logic to only show if any_income is No
+  if job_income == "Yes":
+    reason_cannot_pay
+  if job_income and any_income == "Yes":
+    reason_cannot_pay
+  if job_income and any_income == "No":
+    long_term_income
   reason_cannot_pay
   own_car
   multiple_cars #add logic that if own_car is Yes, ask this
@@ -158,16 +160,14 @@ subquestion: |
 ---
 id: ineligible cases
 question: |
-  Is the debt for this lawsuit from:
+  Is the debt for this lawsuit from any of the following?
 subquestion: |
 
     - Child support
     - Spousal support
     - Taxes
-    - Student loans?
+    - Student loans
 yesno: ineligible_cases
-
-#add logic to kick out if answer is 'yes' - how do I make this solely a statement and add the Exit button, rather than displaying as a field to collect data? 
 ---
 mandatory: True
 code: |
@@ -344,6 +344,13 @@ fields:
   - "I do not recognize the Plaintiff and I never borrowed money from the Plaintiff. Plaintiff has not shown why it has a right to sue me on the alleged debt and the case should be dismissed. Minn.R.Civ.P 17.01.": defense_dont_know_plaintiff
     datatype: yesnowide
 ---
+code: |
+  if last_action_credit_card == "Less than 3 years ago":
+  #if less_than_3_years == True:
+    sol_doesnt_apply: 'In that case, the Statute of Limitations defense does not apply.'
+#  else:
+#    original_creditor
+---
 id: SOL
 question: |
   Finally, let's see if you can use the "Statute of Limitations" defense.
@@ -361,17 +368,99 @@ fields:
   - What kind of debt do you have?: type_of_debt
     input type: radio
     choices:
-      - Credit card
+      - Credit card 
       - Cell phone
       - Car loan
       - Other
-    #none of the above: False
+    label above field: True
   - Explain: other_debt
     show if:
       variable: type_of_debt
       is: Other
-#add logic on each type to explain the SOL timeframe
-    
+  - When was the last time you used the account, made a payment, OR, made a written promise to pay?: last_action_credit_card
+    input type: radio
+    choices:
+      - Less than 3 years ago: less_than_3_years 
+      - 3 to 6 years ago: 3_to_6_years 
+      - 6 or more years ago: 6_or_more_years 
+    show if: 
+      variable: type_of_debt
+      is: Credit card
+    label above field: True
+  - note: |
+      In that case, the Statute of Limitations defense does not apply.
+    show if: 
+      variable: last_action_credit_card
+      is: less_than_3_years
+  - note: |
+      It is not clear if the Statute of Limitations defense applies to your debt. To find out, you need to ask a lawyer first.
+    show if: 
+      variable: last_action_credit_card
+      is: 3_to_6_years
+  - note: |
+      In that case, you can use the Statute of Limitations defense.
+    show if: 
+      variable: last_action_credit_card
+      is: 6_or_more_years 
+  - When was the last time you used the account, made a payment, OR, made a written promise to pay?: last_action_cell_phone
+    input type: radio 
+    choices:
+      - Less than 2 years ago: less_than_2_years 
+      - 2 or more years ago: 2_or_more_years 
+    show if:
+      variable: type_of_debt
+      is: Cell phone
+    label above field: True
+  - note: |
+      In that case, the Statute of Limitations defense does not apply.
+    show if: 
+      variable: last_action_cell_phone
+      is: less_than_2_years
+  - note: |
+      In that case, you can use the Statute of Limitations defense.
+    show if: 
+      variable: last_action_cell_phone
+      is: 2_or_more_years
+  - When was the last time you used the account, made a payment, OR, made a written promise to pay?: last_action_car_loan
+    input type: radio    
+    choices:
+      - Less than 4 years ago: less_than_4_years 
+      - 4 or more years ago: 4_or_more_years 
+    show if:
+      variable: type_of_debt
+      is: Car loan
+    label above field: True
+  - note: |
+      In that case, the Statute of Limitations defense does not apply.
+    show if: 
+      variable: last_action_car_loan
+      is: less_than_4_years
+  - note: |
+      In that case, you can use the Statute of Limitations defense.
+    show if: 
+      variable: last_action_car_loan
+      is: 4_or_more_years
+  - When was the last time you used the account, made a payment, OR, made a written promise to pay?: last_action_other
+    input type: radio     
+    choices:
+      - Less than 6 years ago: less_than_6_years 
+      - 6 or more years ago:  6_or_more_years 
+    show if:
+      variable: type_of_debt
+      is: Other
+    label above field: True
+  - note: |
+      In that case, the Statute of Limitations defense does not apply.
+    show if: 
+      variable: last_action_other
+      is: less_than_6_years  
+  - note: |
+     In that case, you can use the Statute of Limitations defense.
+    show if: 
+      variable: last_action_other
+      is: 6_or_more_years  
+      
+# add logic in attachments block to check this box if this is answered      
 #  - "Plaintiff’s claims are barred by the applicable statute of limitations.": defense_SOL   
 #    datatype: yesnowide
     #add this only on the attachments block
@@ -380,82 +469,6 @@ fields:
 #    datatype: yesnowide
 #    show if: defense_SOL
     #I should just be able to set this up on the attachment block and not show it here.
----
-id: last action 
-question: |
-  When was the last time you:
-subquestion: |
-
-    - used the account
-    - made a payment, OR
-    - made a written promise to pay?
-fields:
-  - "no label": last_action
-    datatype: checkboxes
-    choices: 
-      - Less than 6 years ago: less_than_6_years # add logic to follow up with: In that case, the Statute of Limitations defense does not apply.
-      - 6 or more years ago: 6_or_more_years # add logic to follow up with: In that case, you can use the Statute of Limitations defense.
-      # add logic in attachments block to check this box if this is answered
-    none of the above: False
----
-#this snippet seems to have removed plaintiff's address - add that as a complete attribute to the object 
-id: original creditor
-question: |
-  Is the Plaintiff the "original creditor" for this debt?
-yesnomaybe: original_creditor
-#fields:
-#  - "no label": original_creditor
-    #datatype: checkboxes
-    #choices:
-    #  - Yes: yes
-    #  - No: no
-    #  - Not Sure: not_sure
-    #none of the above: False
-    # add logic on No and Not Sure to say: If the plaintiff is not the original creditor, they have to follow strict rules to prove they really own the debt. Try to talk to a lawyer about this. You should still finish making your Answer today. If you try to talk to a lawyer before you serve and file your Answer, make sure you meet the 20 day deadline!
----
-id: who will be on this form
-generic object: ALPeopleList
-question: |
-  Does the Plaintiff have an ${noun_plural(x.object_name())}?
-fields:
-  - no label: x.there_are_any
-    datatype: yesnoradio
----
-generic object: ALPeopleList
-id: any other people
-question: |
-  Are there any other ${ noun_plural(x.object_name()) }?
-fields:
-  - no label: x.there_is_another
-    datatype: yesnoradio
----
-#Can I just set this to today's date on the attachment block?
-id: Date answer
-question: |
-  Date answer
-fields:
-  - "Date answer": date_answer
-    maxlength: 18
----
-id: process server
-question: |
-  Who will be the process server?
-field: process_server
-buttons:
-  - I will
-  - Someone else # add logic to collect this person's name and address, if known and THEN continue to the service_method logic
-  - Not sure yet
----
-#add logic so this only appears if process_server is 'I will' and later 'someone else'
-id: service method
-question: |
-  Will you Serve the Answer through the mail, through fax, or in person?
-field: service_method
-buttons:
-  - Mail #add logic to follow up with: What city will amanda sauber mail the Answer from? Leave this blank if you do not know. You can write it in later. AND THEN: In what county will amanda sauber get the Affidavit of Service Notarized? Do not answer if you do not know. You can write it in later.
-  - Fax #add logic to follow up with: What fax number will amanda sauber send the Answer to? Leave this blank if you do not know. You can write it in later. AND THEN: In what county will amanda sauber get the Affidavit of Service Notarized? Do not answer if you do not know. You can write it in later.
-  - In Person #add logic to follow up with: In what county will amanda sauber get the Affidavit of Service Notarized? Do not answer if you do not know. You can write it in later.
-  - Unsure
 ---
 id: exempt income and assets
 continue button field: exemptions
@@ -484,8 +497,11 @@ fields:
       - Medicare Part B Premium Payments: partb
       - Medicare Part D Extra Help: partd
       - Energy or Fuel Assistance: energy_asst
-      - Other Exempt Income: other_exempt  ##add logic to include a text box on this option
+      - Other Exempt Income: other_exempt 
     label above field: True
+    none of the above: False
+  - Explain: other_exempt
+    show if: need_based["other_exempt"]
   - Do you get income from one or more Exempt, non-need-based sources?: non_need_based
     datatype: checkboxes
     choices:
@@ -501,25 +517,31 @@ fields:
       - Money earned by any child of yours who is under age 18: money_for_kids
       - Money from a claim for damage or destruction of property: property_damages
       - Death benefits: death_benefits
+      - Other exempt income: other_exempt 
     label above field: True
+    none of the above: False
+  - Explain: other_exempt
+    show if: non_need_based["other_exempt"] #do i need to change the second variable name so this doesn't display the same text from other_exempt above?
 ---
 id: job income
 question: |
   Do you get any money from a job?
 fields:
   - "no label": job_income
-    datatype: yesnoradio
-    #add logic on 'Yes': It looks like some of your income may be Exempt, but not all of it. - check if this is always the response or is this partial exemption based on my previous selections? 
-# add logic that if there's no income, the cover letter says so 
----
-#  add logic on 'No' to job income
-id: any income
-question: |
-  Do you have any income at all?
-fields:
-  - "no label": any_income
-    help:
-      - Income can be money from any of the following sources (this is not a complete list):
+    datatype: radio
+    choices:
+      - Yes
+      - No
+  - note: |
+      It looks like some of your income may be Exempt, but not all of it. 
+    show if: 
+      variable: job_income
+      is: Yes   
+  - "Do you have any income at all?": any_income
+    label above field: True
+    help: |
+      Income can be money from any of the following sources (this is not a complete list):
+      
       - Self employment income
       - Farming income
       - Alimony or spousal support
@@ -528,59 +550,97 @@ fields:
       - Stocks or bonds
       - Income from rental property
       - Pension, PERS or 401(k) retirement benefits
-      - Social Security*
-      - SSI*
-      - Disability Benefits*
-      - Veterans Benefits*
-      - Child Support*
-      - MN Family Investment Program (MFIP)*
-      - General Assistance (GA)*
+      - Social Security
+      - SSI
+      - Disability Benefits
+      - Veterans Benefits
+      - Child Support
+      - MN Family Investment Program (MFIP)
+      - General Assistance (GA)
       - Other cash assistance from the Department of Human Services
-      - Workers Comp*
-      - Job / Employment*
-      - Unemployment benefits*
-    datatype: yesnoradio
+      - Workers Comp
+      - Job / Employment
+      - Unemployment benefits
+    datatype: radio
+    choices: 
+      - Yes
+      - No
+    show if:
+      variable: job_income
+      is: No
+  - note: |
+      It looks like some of your income may be Exempt, but not all of it. 
+    show if: 
+      variable: any_income
+      is: Yes   
+  - "Do you have any money in a bank account that <b>doesn't</b> come from any of the following?": bank_account
+    label above field: True
+    under text: |
+     - SSI - Supplemental Security Income
+     - MFIP - Minnesota Family Investment Program
+     - MFIP Diversionary Work Program
+     - Work Participation Cash Benefit
+     - GA - General Assistance
+     - EA - Emergency Assistance
+     - MA - Medical Assistance
+     - EGA - Emergency General Assistance
+     - MSA - Minnesota Supplemental Aid
+     - MSA-EA - MSA Emergency Assistance
+     - Food Support
+     - MinnesotaCare
+     - Medicare Part B Premium Payments
+     - Medicare Part D Extra Help
+     - Energy or Fuel Assistance
+     - Child Support
+     - Social Security
+     - Workers' Compensation
+     - Unemployment Benefits
+     - Veterans' Benefits
+     - Income from a minor child
+     - Life insurance payments
+     - Money from an accident
+     - Money from disability
+     - Retirement pension
+     - Retirement annuity
+     - Death benefits
+     - Money from a claim for damaged or destroyed property
+     
+     If you are not sure, answer "Yes."
+    datatype: radio
+    choices:
+      - Yes
+      - No
+    show if: 
+      variable: any_income
+      is: No
+  - note: |
+      Your cover letter will also say that any money in your bank account is Exempt. 
+    show if: 
+      variable: bank_account
+      is: No
+    
+# add logic that if there's no income, the cover letter says so OR if there's no income and no money in a bank account, the cover letter says that bank acct money is also exempt. add to attachments block.
 ---
-# add logic that if the user has no income, then ask:
-id: bank account
+id: long term income prospect
 question: |
-  Do you have any money in a bank account that <b>doesn't</b> come from any of the following?
-subquestion: |
-  
-  - SSI - Supplemental Security Income
-  - MFIP - Minnesota Family Investment Program
-  - MFIP Diversionary Work Program
-  - Work Participation Cash Benefit
-  - GA - General Assistance
-  - EA - Emergency Assistance
-  - MA - Medical Assistance
-  - EGA - Emergency General Assistance
-  - MSA - Minnesota Supplemental Aid
-  - MSA-EA - MSA Emergency Assistance
-  - Food Support
-  - MinnesotaCare
-  - Medicare Part B Premium Payments
-  - Medicare Part D Extra Help
-  - Energy or Fuel Assistance
-  - Child Support
-  - Social Security
-  - Workers' Compensation
-  - Unemployment Benefits
-  - Veterans' Benefits
-  - Income from a minor child
-  - Life insurance payments
-  - Money from an accident
-  - Money from disability
-  - Retirement pension
-  - Retirement annuity
-  - Death benefits
-  - Money from a claim for damaged or destroyed property
-  
-  If you are not sure, answer "Yes." 
-fields:
-  - "no label": bank_account
-    datatype: yesnoradio
-# add logic to follow up with: Do you expect your income to stay the same for the long term future? AND THEN: If so, do you want your letter to say so? ##incorporate attachments block info... 
+  Do you expect your income to stay the same for the long term future? 
+fields: 
+  - "no label": long_term_income
+    datatype: radio
+    choices:
+      - Yes
+      - No
+  - Do you want your cover letter to say so?: long_term_income_yes
+    datatype: radio
+    choices:
+      - Yes
+      - No
+    label above field: True
+    show if:
+      variable: long_term_income
+      is: Yes
+      
+#  If so, do you want your letter to say so? - incorporate into attachments block if Yes  
 ---
 #not sure I need this question given the logic above - can I just pull this in on the attachments block? How to best do that??? 
 id: Cant pay reason
@@ -597,7 +657,7 @@ fields:
       
       I am unable to voluntarily pay this sum given my present financial circumstances. All of my current income is used simply to meet basic living needs. I do not expect my financial circumstances to improve at any time in the foreseeable future.
 ---
-# does this always appear or only based on how the user answers the income exemption questions?
+# this only appears if income exemption questions (job_income and any_income are No. bank_account can be either yes or no. This question follows long_term_income for either yes or no responses.)?
 id: exempt assets - cars
 question: |
   Next, let's see if any of your assets other than money are Exempt.
@@ -711,6 +771,65 @@ fields:
   - "no label": home_collateral
     datatype: yesnoradio
 #add logic that if Yes to collateral, then 'your home Equity is not Exempt'.
+---
+#this snippet seems to have removed plaintiff's address - add that as a complete attribute to the object 
+id: original creditor
+question: |
+  Is the Plaintiff the "original creditor" for this debt?
+yesnomaybe: original_creditor
+#fields:
+#  - "no label": original_creditor
+    #datatype: checkboxes
+    #choices:
+    #  - Yes: yes
+    #  - No: no
+    #  - Not Sure: not_sure
+    #none of the above: False
+    # add logic on No and Not Sure to say: If the plaintiff is not the original creditor, they have to follow strict rules to prove they really own the debt. Try to talk to a lawyer about this. You should still finish making your Answer today. If you try to talk to a lawyer before you serve and file your Answer, make sure you meet the 20 day deadline!
+---
+id: who will be on this form
+generic object: ALPeopleList
+question: |
+  Does the Plaintiff have an ${noun_plural(x.object_name())}?
+fields:
+  - no label: x.there_are_any
+    datatype: yesnoradio
+---
+generic object: ALPeopleList
+id: any other people
+question: |
+  Are there any other ${ noun_plural(x.object_name()) }?
+fields:
+  - no label: x.there_is_another
+    datatype: yesnoradio
+---
+#Can I just set this to today's date on the attachment block?
+id: Date answer
+question: |
+  Date answer
+fields:
+  - "Date answer": date_answer
+    maxlength: 18
+---
+id: process server
+question: |
+  Who will be the process server?
+field: process_server
+buttons:
+  - I will
+  - Someone else # add logic to collect this person's name and address, if known and THEN continue to the service_method logic
+  - Not sure yet
+---
+#add logic so this only appears if process_server is 'I will' and later 'someone else'
+id: service method
+question: |
+  Will you Serve the Answer through the mail, through fax, or in person?
+field: service_method
+buttons:
+  - Mail #add logic to follow up with: What city will amanda sauber mail the Answer from? Leave this blank if you do not know. You can write it in later. AND THEN: In what county will amanda sauber get the Affidavit of Service Notarized? Do not answer if you do not know. You can write it in later.
+  - Fax #add logic to follow up with: What fax number will amanda sauber send the Answer to? Leave this blank if you do not know. You can write it in later. AND THEN: In what county will amanda sauber get the Affidavit of Service Notarized? Do not answer if you do not know. You can write it in later.
+  - In Person #add logic to follow up with: In what county will amanda sauber get the Affidavit of Service Notarized? Do not answer if you do not know. You can write it in later.
+  - Unsure
 ---
 id: preview answer_to_complaint_aos
 question: |
