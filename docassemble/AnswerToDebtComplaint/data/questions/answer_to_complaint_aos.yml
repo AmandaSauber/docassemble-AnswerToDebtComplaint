@@ -90,25 +90,35 @@ code: |
   defense_wrong_person
   type_of_debt
   exemptions
-  if job_income == "Yes":
-    reason_cannot_pay
-  if job_income and any_income == "Yes":
-    reason_cannot_pay
+  job_income
+  #if job_income == "Yes":
+  #  reason_cannot_pay
+  #if job_income and any_income == "Yes":
+  #  reason_cannot_pay
   if job_income and any_income == "No":
     long_term_income
-  reason_cannot_pay
+  #reason_cannot_pay
+  asset_exemptions
   own_car
-  multiple_cars #add logic that if own_car is Yes, ask this
-  primary_transportation #add logic that if multiple_cars is No, ask this
-  car_equity #add logic that if primary_transportation is Yes, then ask this
-  car_collateral #add logic that if car_equity is under 4k, ask this question
+  #multiple_cars #add logic that if own_car is Yes, ask this
+  if primary_transportation == "Yes":
+    #add logic that if multiple_cars is No, ask this
+    car_equity 
+  if car_equity == "under_4k":
+    car_collateral 
   real_estate
-  own_home #add logic that if real_estate is Yes, ask this
-  other_real_estate #add logic that if own_home is Yes, ask this
-  farm #add logic that if other_real_estate is NO, ask this
-  home_equity_farm_yes #add logic that if farm is Yes, ask this
-  home_equity_farm_no #add logic that if farm is No, ask this
-  home_collateral ##add logic to ask this if farm is Yes AND equity is 900k or less OR if farm is No AND equity is 360k or less 
+  #own_home #add logic that if real_estate is Yes, ask this
+  #other_real_estate #add logic that if own_home is Yes, ask this
+  #farm #add logic that if other_real_estate is NO, ask this
+  #home_equity_farm_yes #add logic that if farm is Yes, ask this
+  #home_equity_farm_no #add logic that if farm is No, ask this
+  #if home_equity_farm_yes == "less than 900":
+  #  home_collateral ##add logic to ask this if farm is Yes AND equity is 900k or less OR if farm is No AND equity is 360k or less 
+  #if home_equity_farm_no == "less than 360":
+  if ((home_equity_farm_yes == "less_than_900") or (home_equity_farm_no == "less_than_360")): 
+    home_collateral
+  #else:
+  #  other_parties.gather()
   set_progress(64)
   other_parties.gather()
   original_creditor
@@ -156,7 +166,7 @@ subquestion: |
 
   Most people take about 20 minutes to complete this interview.
   
-#add a 'do you agree' button w/logic to kick out if answer is 'no'.
+#add a 'do you agree' button w/logic to kick out if answer is 'no'. Do I need this if we'll be updating the Terms of Use to our own and asking users to agree to those??
 ---
 id: ineligible cases
 question: |
@@ -344,6 +354,7 @@ fields:
   - "I do not recognize the Plaintiff and I never borrowed money from the Plaintiff. Plaintiff has not shown why it has a right to sue me on the alleged debt and the case should be dismissed. Minn.R.Civ.P 17.01.": defense_dont_know_plaintiff
     datatype: yesnowide
 ---
+# why is this section here? Do I need this since the code for this is listed below?
 code: |
   if last_action_credit_card == "Less than 3 years ago":
   #if less_than_3_years == True:
@@ -402,6 +413,12 @@ fields:
     show if: 
       variable: last_action_credit_card
       is: 6_or_more_years 
+  - Do you want to use this defense?: use_defense
+    datatype: yesnoradio
+    show if:
+      variable: last_action_credit_card
+      is: 6_or_more_years 
+    label above field: True
   - When was the last time you used the account, made a payment, OR, made a written promise to pay?: last_action_cell_phone
     input type: radio 
     choices:
@@ -421,6 +438,12 @@ fields:
     show if: 
       variable: last_action_cell_phone
       is: 2_or_more_years
+  - Do you want to use this defense?: use_defense
+    datatype: yesnoradio
+    show if:
+      variable: last_action_cell_phone
+      is: 2_or_more_years 
+    label above field: True
   - When was the last time you used the account, made a payment, OR, made a written promise to pay?: last_action_car_loan
     input type: radio    
     choices:
@@ -440,6 +463,12 @@ fields:
     show if: 
       variable: last_action_car_loan
       is: 4_or_more_years
+  - Do you want to use this defense?: use_defense
+    datatype: yesnoradio
+    show if:
+      variable: last_action_car_loan
+      is: 4_or_more_years 
+    label above field: True
   - When was the last time you used the account, made a payment, OR, made a written promise to pay?: last_action_other
     input type: radio     
     choices:
@@ -458,8 +487,15 @@ fields:
      In that case, you can use the Statute of Limitations defense.
     show if: 
       variable: last_action_other
-      is: 6_or_more_years  
-      
+      is: 6_or_more_years 
+  - Do you want to use this defense?: use_defense
+    datatype: yesnoradio
+    show if:
+      variable: last_action_other
+      is: 6_or_more_years 
+    label above field: True
+  # add logic in attachments block that if the SOL defense may or does apply, it will say either 'this debt may be too old' or 'this debt is too old'. 
+
 # add logic in attachments block to check this box if this is answered      
 #  - "Plaintiff’s claims are barred by the applicable statute of limitations.": defense_SOL   
 #    datatype: yesnowide
@@ -469,6 +505,8 @@ fields:
 #    datatype: yesnowide
 #    show if: defense_SOL
     #I should just be able to set this up on the attachment block and not show it here.
+
+# NOTE: LHI takes the user through an explanation of what 'proof' is and then the SOP portion if the user indicates that want to use the SOL defense that the debt may be or is too old, before getting into income/assets. The 'rpoof' explanation is skipped if the SOL defense does not apply. This info should go mostly in instructions rather than the interview flow. The interview does ask who will do the service and asks for county of notary but this should go at the end of the info gathering. 
 ---
 id: exempt income and assets
 continue button field: exemptions
@@ -657,33 +695,52 @@ fields:
       
       I am unable to voluntarily pay this sum given my present financial circumstances. All of my current income is used simply to meet basic living needs. I do not expect my financial circumstances to improve at any time in the foreseeable future.
 ---
-# this only appears if income exemption questions (job_income and any_income are No. bank_account can be either yes or no. This question follows long_term_income for either yes or no responses.)?
-id: exempt assets - cars
+# this only appears if income exemption questions (job_income and any_income are No. bank_account can be either yes or no. This question follows long_term_income for either yes or no responses.)
+id: asset_exemptions
+mandatory: False
+continue button field: asset_exemptions
 question: |
   Next, let's see if any of your assets other than money are Exempt.
-subquestion: |
+---
+id: exempt assets - cars
+continue button field: own_car
+question: |
   Do you own a car or other motor vehicle?
 fields:
   - "no label": own_car
-    datatype: yesnoradio
----
-#add logic that if own_car is 'Yes', ask this
-id: multiple_cars
-question: |
-  Do you own more than one vehicle?
-fields:
-  - "no label": multiple_cars
-    datatype: yesnoradio
-#add logic that if Yes, then  'your motor vehicle assets may not be Exempt'.
----
-#add logic that if multiple_cars is No, then ask this
-id: primary transportation
-question: |
-  Is the vehicle your primary source of transportation?
-fields:
-  - "no label": primary_transportation
-    datatype: yesnoradio
-#add logic that if No, 'your motor vehicle assets may not be Exempt.
+    datatype: radio
+    choices:
+      - Yes
+      - No
+    label above field: True
+  - Do you own more than one vehicle?: multiple_cars
+    datatype: radio 
+    choices:
+      - Yes
+      - No
+    show if:
+      variable: own_car
+      is: Yes 
+    label above field: True
+  - note: |
+      Your motor vehicle assets may not be Exempt. 
+    show if: 
+      variable: multiple_cars
+      is: Yes
+  - Is the vehicle your primary source of transportation?: primary_transportation
+    datatype: radio
+    choices:
+      - Yes
+      - No
+    show if:
+      variable: multiple_cars
+      is: No
+    label above field: True
+  - note: |
+      Your motor vehicle assets may not be Exempt. 
+    show if: 
+      variable: primary_transportation
+      is: No
 ---
 #Add logic that if primary_transportation is Yes, then ask this
 id: car_equity
@@ -698,14 +755,20 @@ buttons:
   - I do not know: unknown_car_equity
 #if exempt, the letter should say so.
 ---
-#add logic that if car_equity is under 4k, ask this question
 id: car_collateral
 question: |
   Is your debt related to payments for your motor vehicle(s)? Or, did you use the motor vehicle(s) as "collateral" for the debt?
 fields: 
   - "no label": car_collateral 
-    datatype: yesnoradio
-#add logic that if Yes, 'Your motor vehicle is not Exempt if the debt is for the motor vehicle.'
+    datatype: radio
+    choices:
+      - Yes
+      - No
+  - note: |
+      Your motor vehicle is not Exempt if the debt is for the motor vehicle.
+    show if: 
+      variable: car_collateral
+      is: Yes
 ---
 id: real estate
 question: |
@@ -714,54 +777,58 @@ subquestion: |
   Making mortgage payments counts as owning your home.
 fields:
   - "no label": real_estate
-    datatype: yesnoradio
+    datatype: radio
+    choices: 
+      - Yes
+      - No
     #  if 'Yes': Do you own any real estate apart from your home? and THEN if 'No': Up to $360,000 of your Equity in your home is Exempt. If your home is a farm and you use it for agriculture, up to $900,000 of your Equity is Exempt. Is your home a farm, used for agriculture? If you live and work on your own farm, and own no other real estate, you can choose "no".
----
-#add logic to ask this if real_estate is Yes
-id: own_home
-question: |
-  Do you own your home?
-fields:
-  - "no label": own_home
-    datatype: yesnoradio
----
-#add logic to ask this if own_home is Yes
-id: other real estate
-question: |
-  Do you own any real estate apart from your home?
-fields:
-  - "no label": other_real_estate
-    datatype: yesnoradio
----
-#add logic to ask this if other_real_estate is NO
-id: farm
-question: |
-  Is your home a farm, used for agriculture?
-subquestion: |
-  Up to $360,000 of your Equity in your home is Exempt. If your home is a farm and you use it for agriculture, up to $900,000 of your Equity is Exempt.
-fields:
-  - "no label": farm
-    datatype: yesnoradio
----
-#add logic to ask this if Farm is Yes
-id: farm yes
-question: |
-  How much Equity do you have in your home?
-field: home_equity_farm_yes
-buttons:
-  - More than $900,000: more_than_900
-  - $900,000 or less: less_than_900
-  - I do not know: equity_unknown_farm_yes
----
-#add logic to ask this if Farm is NO
-id: farm no
-question: |
-  How much Equity do you have in your home?
-field: home_equity_farm_no
-buttons:
-  - More than $360,000: more_than_360
-  - $360,000 or less: less_than_360
-  - I do not know: equity_unknown_farm_no
+  - Do you own your home?: own_home
+    datatype: radio
+    choices:
+      - Yes
+      - No
+    label above field: True
+    show if:
+      variable: real_estate 
+      is: Yes
+  - Do you own any real estate apart from your home?: other_real_estate
+    datatype: radio
+    choices:
+      - Yes
+      - No
+    label above field: True
+    show if:
+      variable: own_home
+      is: Yes
+  - Up to $360,000 of your Equity in your home is Exempt. If your home is a farm and you use it for agriculture, up to $900,000 of your Equity is Exempt. Is your home a farm, used for agriculture?: farm
+    datatype: radio
+    choices:
+      - Yes
+      - No
+    label above field: True
+    show if:
+      variable: other_real_estate
+      is: No
+  - How much Equity do you have in your home?: home_equity_farm_yes
+    datatype: radio
+    choices:
+      - More than $900,000: more_than_900
+      - $900,000 or less: less_than_900
+      - I do not know: equity_unknown_farm_yes 
+    label above field: True
+    show if:
+      variable: farm
+      is: Yes
+  - How much Equity do you have in your home?: home_equity_farm_no
+    datatype: radio
+    choices:
+      - More than $360,000: more_than_360
+      - $360,000 or less: less_than_360
+      - I do not know: equity_unknown_farm_no
+    label above field: True
+    show if:
+      variable: farm
+      is: No
 ---
 #add logic to ask this if farm is Yes AND equity is 900k or less OR if farm is No AND equity is 360k or less 
 id: collateral for home
@@ -769,8 +836,15 @@ question: |
   Is your debt related to payments for your home? Or, did you use your home as "collateral" for the debt?
 fields:
   - "no label": home_collateral
-    datatype: yesnoradio
-#add logic that if Yes to collateral, then 'your home Equity is not Exempt'.
+    datatype: radio
+    choices:
+      - Yes
+      - No
+  - note: |
+      Your home Equity is not Exempt.
+    show if:
+      variable: home_collateral
+      is: Yes
 ---
 #this snippet seems to have removed plaintiff's address - add that as a complete attribute to the object 
 id: original creditor
