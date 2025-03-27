@@ -95,7 +95,7 @@ objects:
   - users: ALPeopleList.using(target_number=1, ask_number=True)
   - the_courts: ALCourtLoader.using(filename="Courts.xlsx")
   - other_parties: ALPeopleList.using(target_number=1, ask_number=True)
-  - server_address: Address
+#  - server_address: Address
   - attorneys: ALPeopleList.using(there_is_another=False)
   - server_address: ALAddress
 ---
@@ -1137,8 +1137,8 @@ fields:
       - No
     label above field: True
   - What is their address?: server_address 
-    #code: |
-    #  server_address.address_fields(country_code=AL_DEFAULT_COUNTRY, default_state=AL_DEFAULT_STATE)
+    code: |
+      server_address.address_fields(country_code=AL_DEFAULT_COUNTRY, default_state=AL_DEFAULT_STATE)
     label above field: True
     show if:
       variable: server_address_known
