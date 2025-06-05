@@ -95,7 +95,6 @@ objects:
   - users: ALPeopleList.using(target_number=1, ask_number=True)
   - the_courts: ALCourtLoader.using(filename="Courts.xlsx")
   - other_parties: ALPeopleList.using(target_number=1, ask_number=True)
-#  - server_address: Address
   - attorneys: ALPeopleList.using(there_is_another=False)
   - server_address: ALAddress
 ---
@@ -127,9 +126,11 @@ code: |
   account_number
   admit
   set_progress(48)
-  defense_wrong_person
-  type_of_debt
+  defense_insufficient_service
+  type_of_debt 
   exemptions
+  need_based    
+  non_need_based
   job_income
   if job_income == "Yes":
     other_parties.gather()
@@ -140,6 +141,8 @@ code: |
     if any_income == "No":
       bank_account
       if bank_account == "Yes":
+        proof
+        basic_living_expenses
         long_term_income
         asset_exemptions
         own_car
@@ -165,6 +168,8 @@ code: |
                   if other_real_estate == "No":
                     farm
       if bank_account == "No":
+        proof
+        basic_living_expenses      
         long_term_income
         asset_exemptions
         own_car
@@ -194,7 +199,7 @@ code: |
   #if job_income == "Yes":
   #  reason_cannot_pay
   #if job_income and any_income == "Yes":
-  #reason_cannot_pay
+  reason_cannot_pay
 
   set_progress(64)
   other_parties.gather()
@@ -306,61 +311,43 @@ code: |
     my_court = the_courts.as_court("my_court", court_index)
 ---
 code: |
-  if the_county in ["McLeod", "Sibley", "Carver", "Scott", "Dakota", "Le Sueur", "Goodhue"]:
-      trial_court_district = "1st"
-  elif the_county == "Ramsey":
-      trial_court_district = "2nd"
-  elif the_county in ["Rice", "Waseca", "Steele", "Dodge", "Olmsted", "Wabasha", "Winona", "Freeborn", "Mower", "Fillmore", "Houston"]:
-      trial_court_district = "3rd"
-  elif the_county == "Hennepin":
-      trial_court_district = "4th"
-  elif the_county in ["Lincoln", "Lyon", "Redwood", "Brown", "Nicollet", "Pipestone", "Murray", "Cottonwood", "Watonwan", "Blue Earth", "Rock", "Nobles", "Jackson", "Martin", "Faribault"]:
-      trial_court_district = "5th"
-  elif the_county in ["St. Louis", "Lake", "Cook", "Carlton"]:
-      trial_court_district = "6th"
-  elif the_county in ["Clay", "Becker", "Otter Tail", "Wadena", "Douglas", "Todd", "Morrison", "Mille Lacs", "Stearns", "Benton"]:
-      trial_court_district = "7th"
-  elif the_county in ["Wilkin", "Grant", "Traverse", "Big Stone", "Stevens", "Pope", "Swift", "Lac qui Parle", "Kandiyohi", "Chippewa", "Meeker", "Yellow Medicine", "Renville"]:
-      trial_court_district = "8th"
-  elif the_county in ["Kittson", "Roseau", "Lake of the Woods", "Marshall", "Beltrami", "Koochiching", "Pennington", "Red Lake", "Polk", "Clearwater", "Norman", "Mahnomen", "Hubbard", "Cass", "Itasca", "Crow Wing", "Aitkin"]:
-      trial_court_district = "9th"
-  elif the_county in ["Pine", "Kanabec", "Sherburne", "Isanti", "Chisago", "Anoka", "Wright", "Washington"]:
-      trial_court_district = "10th"
-  else:
-      trial_court_district = None
+  def get_judicial_district(the_county):
+      if the_county in ["McLeod", "Sibley", "Carver", "Scott", "Dakota", "Le Sueur", "Goodhue"]:
+          return "First Judicial District"
+      elif the_county == "Ramsey":
+          return "Second Judicial District"
+      elif the_county in ["Rice", "Waseca", "Steele", "Dodge", "Olmsted", "Wabasha", "Winona", "Freeborn", "Mower", "Fillmore", "Houston"]:
+          return "Third Judicial District"
+      elif the_county == "Hennepin":
+          return "Fourth Judicial District"
+      elif the_county in ["Lincoln", "Lyon", "Redwood", "Brown", "Nicollet", "Pipestone", "Murray", "Cottonwood", "Watonwan", "Blue Earth", "Rock", "Nobles", "Jackson", "Martin", "Faribault"]:
+          return "Fifth Judicial District"
+      elif the_county in ["St. Louis", "Lake", "Cook", "Carlton"]:
+          return "Sixth Judicial District"
+      elif the_county in ["Clay", "Becker", "Otter Tail", "Wadena", "Douglas", "Todd", "Morrison", "Mille Lacs", "Stearns", "Benton"]:
+          return "Seventh Judicial District"
+      elif the_county in ["Wilkin", "Grant", "Traverse", "Big Stone", "Stevens", "Pope", "Swift", "Lac qui Parle", "Kandiyohi", "Chippewa", "Meeker", "Yellow Medicine", "Renville"]:
+          return "Eighth Judicial District"
+      elif the_county in ["Kittson", "Roseau", "Lake of the Woods", "Marshall", "Beltrami", "Koochiching", "Pennington", "Red Lake", "Polk", "Clearwater", "Norman", "Mahnomen", "Hubbard", "Cass", "Itasca", "Crow Wing", "Aitkin"]:
+          return "Ninth Judicial District"
+      elif the_county in ["Pine", "Kanabec", "Sherburne", "Isanti", "Chisago", "Anoka", "Wright", "Washington"]:
+          return "Tenth Judicial District"
+      else:
+          return "Unknown Judicial District"
+
+  trial_court_district = get_judicial_district(the_county)
 ---
 id: district and county
 question: |
-  What county was your case filed in?
+  What county are you being sued in?
 fields:
   - "no label": the_county
     code: sorted(the_courts.county_list())
     required: True
     label above field: True
     datatype: str
-
-#  - <b>Judicial District</b>: trial_court_district
-#    datatype: str
-#    choices: 
-#      - 1st
-#      - 2nd
-#      - 3rd
-#      - 4th
-#      - 5th
-#      - 6th
-#      - 7th
-#      - 8th
-#      - 9th 
-#      - 10th
-#    required: True
-#    label above field: True
-
-#  - <b>Trial court state</b>: trial_court_state
-#    code: |
-#      states_list()
-#    default: Minnesota
-#    required: False
-#    label above field: True
+  - note: |
+      You can find the name of the county in the top left-hand corner of the Complaint.
 ---
 question: |
   There is more than one court in your county. Pick the court below.
@@ -375,6 +362,18 @@ subquestion: |
   ${ my_court.address.block() }
 #  [Edit](${ url_action('my_court') })
 # add logic that if correct_court = No, undefine or forget_result_of my_court and prompt the user to select the court from a dropdown list of all the courts. Is there a chance the court isn't in the list??
+---
+continue button field: docket_number
+id: docket number
+question: |
+  What is the Court File Number used to track this case in court?
+fields:
+  - I don't know the case number: dont_know_docket_number
+    datatype: yesno    
+  - Court File Number: docket_number
+    hide if: dont_know_docket_number
+    help: |
+      You can find this in the upper right-hand corner of the Complaint.
 ---
 code: |
   users[i].name.first
@@ -419,6 +418,8 @@ fields:
   - "Account number": account_number
     maxlength: 20
     required: False
+    help: |
+      If you have an account number, it should be mentioned somewhere in the Complaint. If the debt was for a bank or credit card, it may say something like "the account number ending in 1234." It should also be on any piece of mail you got about this debt.
 ---
 id: Admit/deny
 question: |
@@ -457,6 +458,8 @@ fields:
     datatype: yesnowide
   - "I don't owe all of the money alleged.": defense_dont_owe
     datatype: yesnowide
+    help: |
+      If the case goes to court, the creditor will have to provide proof of what you owe. If you owe some of the money, but are not sure that the amount claimed by the plaintiff is correct, you can say yes to this defense.
   - "Plaintiff is not my creditor.": defense_not_creditor
     datatype: yesnowide
   - "The debt at issue has been discharged by bankruptcy.": defense_bankruptcy
@@ -465,6 +468,20 @@ fields:
     datatype: yesnowide
   - "Someone used my name and identity without my permission.": defense_id_theft
     datatype: yesnowide
+    help: |
+      Identity theft is when someone gets your personal information (like a social security or bank account number) and uses it to:
+
+        - buy things with your credit card,
+        - take money from your bank account,
+        - open accounts in your name, or
+        - take out loans in your name.
+      
+      If this debt is from identity theft, tell the plaintiff RIGHT AWAY. Write a letter that says the debt is from identify theft, and make a copy of the letter for your records. If the plaintiff has a lawyer, send the letter to the lawyer. If there is no lawyer, send the letter to the plaintiff. 
+
+      Debts that come from identity theft are not valid. If you use the "Identity Theft Defense" and your case goes to court, you will need to prove that the debt is from identity theft.
+
+      File a police report. Creditors often want to see a police report before they will release a debt for identity theft.
+      
   - "There are charges on this account that I did not agree to.": defense_unagreeable_charges
     datatype: yesnowide
   - "I do not recognize the Plaintiff and I never borrowed money from the Plaintiff. Plaintiff has not shown why it has a right to sue me on the alleged debt and the case should be dismissed. Minn.R.Civ.P 17.01.": defense_dont_know_plaintiff
@@ -483,6 +500,11 @@ subquestion: |
     - used the account in any way.
    
    Whenever you do any of those things, the deadline clock gets reset. The plaintiff then gets more time to file the lawsuit.
+
+  <b>IMPORTANT!:</b> If you use the Statute of Limitations defense in your Answer and it does not apply, you can be accused of making a "frivolous" claim. That may have serious penalties.
+  
+  But if you don't use it and find out later that it does apply, you may have missed your best chance to win. If it's not in your Answer, you can't bring it up later. <b>Talk to a lawyer first!</b>
+  
 fields:
   - <b>What kind of debt do you have?</b>: type_of_debt
     input type: radio
@@ -523,7 +545,14 @@ fields:
       variable: last_action_credit_card
       is: 6_or_more_years 
   - <b>Do you want to use this defense?</b>: use_defense
-    datatype: yesnoradio
+    # need to apply logic that if this is Yes, the cover letter says so. Do I also need to change the checkbox code so that this triggers the checking or unchecking of that box on the form?? 
+    datatype: checkboxes 
+#    input type: radio
+    choices:
+      - Yes
+      - No
+    none of the above: False
+    maxlength: 1
     show if:
       variable: last_action_credit_card
       is: 6_or_more_years 
@@ -548,7 +577,14 @@ fields:
       variable: last_action_cell_phone
       is: 2_or_more_years
   - <b>Do you want to use this defense?</b>: use_defense
-    datatype: yesnoradio
+    # need to apply logic that if this is Yes, the cover letter says so. Do I also need to change the checkbox code so that this triggers the checking or unchecking of that box on the form?? 
+    datatype: checkboxes 
+#    input type: radio
+    choices:
+      - Yes
+      - No
+    none of the above: False
+    maxlength: 1
     show if:
       variable: last_action_cell_phone
       is: 2_or_more_years 
@@ -573,7 +609,14 @@ fields:
       variable: last_action_car_loan
       is: 4_or_more_years
   - <b>Do you want to use this defense?</b>: use_defense
-    datatype: yesnoradio
+    # need to apply logic that if this is Yes, the cover letter says so. Do I also need to change the checkbox code so that this triggers the checking or unchecking of that box on the form?? 
+    datatype: checkboxes 
+#    input type: radio
+    choices:
+      - Yes
+      - No
+    none of the above: False
+    maxlength: 1
     show if:
       variable: last_action_car_loan
       is: 4_or_more_years 
@@ -598,48 +641,64 @@ fields:
       variable: last_action_other
       is: 6_or_more_years 
   - <b>Do you want to use this defense?</b>: use_defense
-    datatype: yesnoradio
+    # need to apply logic that if this is Yes, the cover letter says so. Do I also need to change the checkbox code so that this triggers the checking or unchecking of that box on the form?? 
+    datatype: checkboxes 
+#    input type: radio
+    choices:
+      - Yes
+      - No
+    none of the above: False
+    maxlength: 1
     show if:
       variable: last_action_other
       is: 6_or_more_years 
     label above field: True
 ---
-## Not sure this is working as desired. 
-
-# add logic in attachments block to check this box if this is answered      
-#  - "Plaintiff’s claims are barred by the applicable statute of limitations.": defense_SOL   
-
-#  - "If this box is checked, Plaintiff’s claims are barred by the applicable statute of limitations.": claims_barred
-#    datatype: yesnowide
-#    show if: defense_SOL
-    #Need to set the variable for claims_barred = Yes/True if defense_SOL = True. Do I need both fields or can the defense_SOL replace claims_barred and ultimately be the variable that sets the checkbox?? I should just be able to set this up on the attachment block and not show it here.
 code: |
-  if type_of_debt == "Credit card" and last_action_credit_card == "6_or_more_years":
-      defense_SOL = True
-  elif type_of_debt == "Cell phone" and last_action_cell_phone == "2_or_more_years":
-      defense_SOL = True
-  elif type_of_debt == "Car loan" and last_action_car_loan == "4_or_more_years":
-      defense_SOL = True
-  elif type_of_debt == "Other" and last_action_other == "6_or_more_years":
-      defense_SOL = True
-  else:
-      defense_SOL = False
+  def get_defense_SOL(type_of_debt, last_action_credit_card=None, last_action_cell_phone=None, last_action_car_loan=None, last_action_other=None):
+      if type_of_debt == "Credit card" and last_action_credit_card == "6_or_more_years":
+          return True
+      elif type_of_debt == "Cell phone" and last_action_cell_phone == "2_or_more_years":
+          return True
+      elif type_of_debt == "Car loan" and last_action_car_loan == "4_or_more_years":
+          return True
+      elif type_of_debt == "Other" and last_action_other == "6_or_more_years":
+          return True
+      else:
+          return False
+
+  # Ensure the variables are set based on user input
+  last_action_credit_card = last_action_credit_card if 'last_action_credit_card' in globals() else None
+  last_action_cell_phone = last_action_cell_phone if 'last_action_cell_phone' in globals() else None
+  last_action_car_loan = last_action_car_loan if 'last_action_car_loan' in globals() else None
+  last_action_other = last_action_other if 'last_action_other' in globals() else None
+
+  defense_SOL = get_defense_SOL(type_of_debt, last_action_credit_card, last_action_cell_phone, last_action_car_loan, last_action_other)
+  # Debugging statement to check defense_SOL value
+  print(f"defense_SOL: {defense_SOL}")
 ---
   # add logic in attachments block that if the SOL defense may or does apply, it will say either 'this debt may be too old' or 'this debt is too old'. 
 
 
 # NOTE: LHI takes the user through an explanation of what 'proof' is and then the SOP portion if the user indicates that want to use the SOL defense that the debt may be or is too old, before getting into income/assets. The 'proof' explanation is skipped if the SOL defense does not apply. This info should go mostly in instructions rather than the interview flow. The interview does ask who will do the service and asks for county of notary but this should go at the end of the info gathering. 
 #---
-id: exempt income and assets
+id: exemptions
+mandatory: False
 continue button field: exemptions
 question: |
-  Exempt Income and Assets
+  Exempt income and assets
 subquestion: |
   Even if the plaintiff wins in court, there are some income and assets they can never take. These are called "Exempt" income and assets.
   
   Let's find out if your income and assets are Exempt.
+---
+id: need_based
+question: |
+  Do you currently get money from any of the following government programs?
+subquestion: |
+  Select all that apply. 
 fields: 
-  - <b>Do you currently get money from any need-based government programs?</b>: need_based
+  - "no label": need_based
     datatype: checkboxes
     choices:
       - SSI - Supplemental Security Income
@@ -662,7 +721,14 @@ fields:
   - Explain: other_exempt
     show if: need_based["Other need based"]
     input type: area
-  - <b>Do you get income from one or more Exempt, non-need-based sources?</b>: non_need_based
+---
+id: non_need_based
+question: |
+  Do you get income from any of the following sources?
+subquestion: |
+  Select all that apply.
+fields: 
+  - "no label": non_need_based
     datatype: checkboxes
     choices:
       - Workers Compensation 
@@ -778,8 +844,87 @@ fields:
     show if: 
       variable: bank_account
       is: No
-    
+---
+code: |
+  no_income = (
+      not need_based and
+      not non_need_based and
+      job_income == "No" and
+      any_income == "No"
+  )
 # add logic that if there's no income, the cover letter says so OR if there's no income and no money in a bank account, the cover letter says that bank acct money is also exempt. add to attachments block.
+
+# add logic to ask if proof will be included if job income = no, and any income = no,  and bank account = yes or no. Then follow up by asking 'Is all of your income used to meet basic living expenses? If so, do you want your letter to say so?'. This should then route to the long_term_income question. 
+---
+#code: |
+#  def reason_cannot_pay():
+#    if job_income == 'No' and need_based and non_need_based:
+#      return f"I am currently a recipient of need-based assistance and I have no job earnings. All of my income comes from the following exempt sources: {', '.join(need_based)} {', '.join(non_need_based)}."
+#    elif job_income == 'No' and need_based and not non_need_based:
+#      return f"I am currently a recipient of need-based assistance and I have no job earnings. All of my income comes from the following exempt sources: {', '.join(need_based)}."
+#    elif job_income == 'No' and non_need_based and not need_based:
+#      return f"I have no job earnings, and all of my income comes from the following exempt sources: {', '.join(non_need_based)}."
+#    elif no_income:
+#      return f"I have no income whatsoever."
+#    else:
+#      return ""
+#---
+---
+comment: |
+  my_dictionary = {
+    "Need One": True,
+    "Need 2": False,
+    "key": "value"
+  }
+  dictionary_2 = {}
+  | "truthy" | "falsy" |
+  | 3 | 0 |
+  | "something" | "" |
+  | [123] | - |
+  | [] | - |
+  | {} | - |
+  | neeed_based | - |
+  Are there any values inside need_based that are equal to True
+---
+template: reason_cannot_pay
+content: |
+  % if job_income == 'No' and need_based.any_true() and non_need_based.any_true():
+  Did it happen? I am currently a recipient of need-based assistance and I have no job earnings. All of my income comes from the following exempt sources: ${ comma_and_list(need_based.true_values() + non_need_based.true_values()) }.
+  % elif job_income == 'No' and need_based and not non_need_based:
+  No, the right thing happened. I am currently a recipient of need-based assistance and I have no job earnings. All of my income comes from the following exempt sources: ${', '.join(need_based)}.
+  % elif job_income == 'No' and non_need_based and not need_based:
+  I have no job earnings, and all of my income comes from the following exempt sources: ${', '.join(non_need_based)}.
+  % elif no_income:
+  I have no income whatsoever.
+  % else:
+  No conditions met 
+  % endif
+---
+id: proof
+question: |
+  It may help to include proof of this with your letter. 
+subquestion: |
+  <b>Will you include proof in your letter?</b>
+fields:
+  - "no label": proof
+    datatype: radio
+    choices:
+      - Yes
+      - No
+  - note: |
+      Proof could be a copy of a check stub, a bank statement going back 60 days, a copy of a check, or any document that shows where your income comes from. 
+---
+id: basic_living_expenses
+question: |
+  Is all of your income used to meet basic living expenses?
+subquestion: |
+  If so, your letter will say so. If you don't want your letter to say so, answer No.
+fields:
+  - "no label": basic_living_expenses
+    datatype: radio
+    choices:
+      - Yes
+      - No
 ---
 id: long term income prospect
 question: |
@@ -801,21 +946,6 @@ fields:
       is: Yes
       
 #  If so, do you want your letter to say so? - incorporate into attachments block if Yes  
----
-#Pull this in on the attachments block - How to best do that??? 
-#id: Cant pay reason
-#question: |
-#  Inability to pay 
-#subquestion: |
-#  Please be advised that regardless of any merits to your case, I have no ability to pay this sum because:
-#fields:
-#  - "no label": reason_cannot_pay
-#    maxlength: 100
-#    input type: area
-#  - note: |
-#      In addition, any money in my bank account(s) is exempt.
-      
-#      I am unable to voluntarily pay this sum given my present financial circumstances. All of my current income is used simply to meet basic living needs. I do not expect my financial circumstances to improve at any time in the foreseeable future.
 ---
 # this only appears if income exemption questions (job_income and any_income are No. bank_account can be either yes or no. This question follows long_term_income for either yes or no responses.)
 id: asset_exemptions
@@ -1004,12 +1134,16 @@ fields:
       - Not sure
     label above field: True
   - note: |
-      If the plaintiff is not the original creditor, they have to follow strict rules to prove they really own the debt. Try to talk to a lawyer about this. You should still finish making your Answer today. If you try to talk to a lawyer before you serve and file your Answer, make sure you meet the 20 day deadline!
+      If the plaintiff is not the original creditor, they have to follow strict rules to prove they really own the debt. Try to talk to a lawyer about this. You should still finish making your Answer today. 
+      
+      If you try to talk to a lawyer before you serve and file your Answer, <b>make sure you meet the 20 day deadline!</b>
     show if: 
       variable: original_creditor
       is: No
   - note: |
-      If the plaintiff is not the original creditor, they have to follow strict rules to prove they really own the debt. Try to talk to a lawyer about this. You should still finish making your Answer today. If you try to talk to a lawyer before you serve and file your Answer, make sure you meet the 20 day deadline!
+      If the plaintiff is not the original creditor, they have to follow strict rules to prove they really own the debt. Try to talk to a lawyer about this. You should still finish making your Answer today. 
+      
+      If you try to talk to a lawyer before you serve and file your Answer, <b>make sure you meet the 20 day deadline!</b>
     show if: 
       variable: original_creditor
       is: Not sure
@@ -1032,13 +1166,6 @@ validation code: |
       if not phone_number_is_valid(x.fax_number):
         validation_error("Please enter a fax number in the format (xxx) xxx-xxxx", field="x.fax_number")
       x.fax_number = phone_number_formatted(x.fax_number)
----
-#SET THIS TO TODAY'S DATE IN THE ATTACHMENT BLOCK
-#id: Date answer
-#question: |
-#  Date answer
-#fields:
-#  - "Date answer": date_answer
 ---
 id: service of process explained
 mandatory: False
@@ -1136,14 +1263,8 @@ fields:
       - Yes
       - No
     label above field: True
-  - What is their address?: server_address 
-    code: |
-      server_address.address_fields(country_code=AL_DEFAULT_COUNTRY, default_state=AL_DEFAULT_STATE)
-    label above field: True
-    show if:
-      variable: server_address_known
-      is: Yes
-    ##Can I change this to the address block instead? this code block isn't working just yet. 
+  - code: |
+      server_address.address_fields(country_code=AL_DEFAULT_COUNTRY, default_state=AL_DEFAULT_STATE, show_if={ "variable": "server_address_known", "is": "Yes" })    
 ---
 id: preview answer_to_complaint_aos
 question: |
@@ -1208,14 +1329,6 @@ review:
       % for item in users:
         * ${ item }
       % endfor
-#  - Edit: user_address
-#    button: |
-#      **User address**:
-#      ${ user_address }
-#  - Edit: user_city_state_zip
-#    button: |
-#      **User city state zip**:
-#      ${ user_city_state_zip }
   - raw html: |
       ${ next_accordion('Plaintiff') }
   - Edit: other_parties.revisit
@@ -1296,18 +1409,16 @@ review:
     button: |
       **I do not recognize the Plaintiff and I never borrowed money from the Plaintiff:**
       ${ word(yesno(defense_dont_know_plaintiff)) }
-### the SOL portion is not displaying on the review screen.
-  - Edit: defense_SOL
-    button: |
+  - raw html: |
+      ${ next_accordion('Statute of Limitations Defense') }
+#  - Edit: defense_SOL
+#    button: |
+#      **Statute of Limitations defense applies:**
+#      ${ word(yesno(defense_SOL)) }
+  - note: |
       **Statute of Limitations defense applies:**
       ${ word(yesno(defense_SOL)) }
-    # this will be tied only to the attachments block. If one of the SOL defenses is valid (credit card (6+ years), cell phone (2+ years), car loan (4+ years), other (6+ years)), this should be Yes. Otherwise, No. Edit screen should reflect the yes/no but the button click should take the user back to the logic that starts w/type_of_debt.
-#  - Edit: claims_barred
-#    button: |
-#      **Claims barred:**
-#      ${ word(yesno(claims_barred)) }
-    # what does this go to? Do I need this here? I think this is also an attachments block only thing..
-### 
+    # If one of the SOL defenses is valid (credit card (6+ years), cell phone (2+ years), car loan (4+ years), other (6+ years)), this should be Yes. Otherwise, No. 
   - raw html: |
       ${ next_accordion('Income Exemptions') }
   - Edit: need_based
@@ -1344,7 +1455,6 @@ review:
 #  % if show_asset_exemptions():
   - raw html: |
       ${ next_accordion('Asset Exemptions') }
-  ## This whole section is not displaying now, even when the user did reach this section during the interview 
   - Edit: own_car
     button: |
       **Vehicles:**
@@ -1368,16 +1478,6 @@ review:
         - **Home collateral:** Not applicable
       % endif
 #  % endif
-### I don't think I need this in the review screen.
-#  - Edit: reason_cannot_pay
-#    button: |
-#      **Reason cannot pay:**
-#      ${ reason_cannot_pay }
-    # used on the letter. Need to figure out how to build the logic for this using income/exemptions or whatever to determine if this should populate. This will only be part of the attachments block. 
-#  - Edit: date_answer
-#    button: |
-#      **Date answer**:
-#      ${ date_answer }
   - raw html: |
       ${ next_accordion('Service of Process') }
   - Edit: process_server
@@ -1509,11 +1609,10 @@ attachment:
   skip undefined: True
   pdf template file: answer_to_complaint_aos.pdf
   fields:
- #     - "trial_court_district": ${ trial_court_district }  
-      - Trial Court District: |
-          ${ trial_court_district } 
+      - "trial_court_district": ${ trial_court_district }  
       - "docket_number": ${ docket_number }
       - "the_county": ${ the_county }
+#      - "users1_name": ${ users[0] }
       - "attorneys_name": ${ attorneys[0] }
       - "attorneys_address_address": ${ attorneys[0].address.address }
       - "attorneys_address_line_two": ${ attorneys[0].address.line_two() }
@@ -1525,91 +1624,54 @@ attachment:
   skip undefined: True
   pdf template file: answer_to_complaint_form.pdf
   fields:
-      - "trial_court_district": ${ trial_court_district }
-      - "trial_court_district": ${ trial_court_district }
-      - "docket_number": ${ docket_number }
+      - "trial_court_district": ${ trial_court_district } 
       - "docket_number": ${ docket_number }
       - "the_county": ${ the_county }
-      - "the_county": ${ the_county }
-      - "date_answer": ${ date_answer }
-      - "date_answer": ${ date_answer }
       - "date_answer": ${ date_answer }
       - "other_parties1_name": ${ other_parties[0] }
-#      - "other_parties1_name": ${ other_parties[0] }
-#      - "other_parties1_name": ${ other_parties[0] }
-      - "user_name": ${ users[0] }
       - "users1_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "users1_name": ${ users[0] }
-      - "users1_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "users1_name": ${ users[0] }
-      - "user_address": ${ user_address }
-      - "user_address": ${ user_address }
-      - "users1_address_address": ${ users[0].address.address }
-      - "users1_address_address": ${ users[0].address.address }
-      - "user_city_state_zip": ${ user_city_state_zip }
-      - "user_city_state_zip": ${ user_city_state_zip }
-      - "users1_address_line_two": ${ users[0].address.line_two() }
+      - "users1_address_line_one": ${ users[0].address.line_one() }
       - "users1_address_line_two": ${ users[0].address.line_two() }
       - "users1_phone_number": ${ users[0].phone_number }
-      - "user_phone": ${ users[0].phone_number }
-      - "users1_phone_number": ${ users[0].phone_number }
-      - "user_phone": ${ users[0].phone_number }
       - "admit": ${ admit }
       - "deny": ${ deny }
       - "insufficient_info": ${ insufficient_info }
       - "defense_insufficient_service": ${ defense_insufficient_service }
       - "defense_wrong_person": ${ defense_wrong_person }
       - "defense_paid": ${ defense_paid }
-      - "affirmative_defense4": ${ affirmative_defense4 }
+      - "defense_dont_owe": ${ defense_dont_owe }
       - "defense_not_creditor": ${ defense_not_creditor }
       - "defense_bankruptcy": ${ defense_bankruptcy }
       - "defense_credit_card": ${ defense_credit_card }
-      - "affirmative_defense8": ${ affirmative_defense8 }
+      - "defense_id_theft": ${ defense_id_theft }
       - "defense_unagreeable_charges": ${ defense_unagreeable_charges }
       - "defense_dont_know_plaintiff": ${ defense_dont_know_plaintiff }
-      - "defense_SOL": ${ defense_SOL }
-      - "claims_barred": ${ claims_barred }
+      - "defense_SOL": ${ defense_SOL } 
+      - "use_defense": ${ use_defense["Yes"] } #how to set logic so that this triggers only when use_defense = Yes? Is this right?
+      - "date_answer": ${ today() }
 ---
 attachment:
   name: answer to complaint letter
   filename: answer_to_complaint_letter
   variable name: answer_to_complaint_letter[i]
   skip undefined: True
-  pdf template file: answer_to_complaint_letter.pdf
+  docx template file: answer_to_complaint_debt_collection_docx_template.docx 
+  tagged pdf: True
   fields:
       - "attorneys_name": ${ attorneys[0] }
-      - "attorneys_name": ${ attorneys[0] }
-      - "attorneys_name": ${ attorneys[0] }
-      - "attorneys_address_address": ${ attorneys[0].address.address }
       - "attorneys_address_address": ${ attorneys[0].address.address }
       - "attorneys_address_line_two": ${ attorneys[0].address.line_two() }
-      - "attorneys_address_line_two": ${ attorneys[0].address.line_two() }
-      - "date_answer": ${ date_answer }
-      - "date_answer": ${ date_answer }
-      - "date_answer": ${ date_answer }
-      - "other_parties1_name": ${ other_parties[0] }
-#     - "other_parties1_name": ${ other_parties[0] }
-#     - "other_parties1_name": ${ other_parties[0] }
-      - "user_name": ${ users[0] }
-      - "users1_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "users1_name": ${ users[0] }
-      - "users1_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "users1_name": ${ users[0] }
       - "attorneys_fax_number": ${ attorneys[0].fax_number }
+      - "date_answer": ${ today() }
+      - "other_parties1_name": ${ other_parties[0] }
+      - "users1_name": ${ users[0] }
       - "account_number": ${ account_number }
-      - "reason_cannot_pay": ${ reason_cannot_pay }
+      - "need_based": ${ need_based }
+      - "non_need_based": ${ non_need_based }
+      - "no_income": ${ no_income }
+
+
+#car_equity: if exempt (4,400 or less), the letter should say so. what does LHI display on the letter if the user enters I don't know? 
 
 
 
