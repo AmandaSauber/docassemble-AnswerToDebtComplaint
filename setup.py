@@ -53,7 +53,7 @@ setup(name='docassemble.AnswerToDebtComplaint',
       license='The MIT License',
       url='https://courtformsonline.org',
       packages=find_namespace_packages(),
-      install_requires=['docassemble.AssemblyLine @ git+https://github.com/SuffolkLITLab/docassemble-AssemblyLine.git@main'],
+      install_requires=['docassemble.AssemblyLine @ git+https://github.com/SuffolkLITLab/docassemble-AssemblyLine.git@main', 'docassemble.GithubFeedbackForm @ git+https://github.com/SuffolkLITLab/docassemble-GithubFeedbackForm.git@main'],
       zip_safe=False,
       package_data=find_package_data(where='docassemble/AnswerToDebtComplaint/', package='docassemble.AnswerToDebtComplaint'),
      )

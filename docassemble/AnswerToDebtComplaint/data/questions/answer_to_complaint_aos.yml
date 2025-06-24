@@ -5,6 +5,7 @@ modules:
 include:
   - docassemble.AssemblyLine:assembly_line.yml
   - docassemble.ALToolbox:collapse_template.yml
+  - docassemble.GithubFeedbackForm:embedded_review.yml
 ---
 metadata:
   title: >-
@@ -133,11 +134,11 @@ code: |
   non_need_based
   job_income
   if job_income == "Yes":
-    other_parties.gather()
+    other_parties.gather()          # i believe i need to add the remainder of the interview logic that follows other_parties below here. the logic doesn't know to skip below and pick up at that point.
   if job_income == "No":
     any_income
     if any_income == "Yes":
-      other_parties.gather()
+      other_parties.gather()        # i believe i need to add the remainder of the interview logic that follows other_parties below here. the logic doesn't know to skip below and pick up at that point.
     if any_income == "No":
       bank_account
       if bank_account == "Yes":
@@ -194,13 +195,8 @@ code: |
                   other_real_estate
                   if other_real_estate == "No":
                     farm
-  
-  #I dont know if I need the following string or not
-  #if job_income == "Yes":
-  #  reason_cannot_pay
-  #if job_income and any_income == "Yes":
   reason_cannot_pay
-
+  exempt_assets
   set_progress(64)
   other_parties.gather()
   original_creditor
@@ -360,8 +356,6 @@ question: |
   You selected "${ my_court }"
 subquestion: |
   ${ my_court.address.block() }
-#  [Edit](${ url_action('my_court') })
-# add logic that if correct_court = No, undefine or forget_result_of my_court and prompt the user to select the court from a dropdown list of all the courts. Is there a chance the court isn't in the list??
 ---
 continue button field: docket_number
 id: docket number
@@ -535,7 +529,9 @@ fields:
       variable: last_action_credit_card
       is: less_than_3_years
   - note: |
-      It is not clear if the Statute of Limitations defense applies to your debt. To find out, you need to ask a lawyer first.
+      It is not clear if the Statute of Limitations defense applies to your debt. To find out, you need to ask a lawyer first. 
+      
+      Your Answer will print with a box you can check to use this defense, <b>after</b> you ask a lawyer. 
     show if: 
       variable: last_action_credit_card
       is: 3_to_6_years
@@ -544,14 +540,11 @@ fields:
     show if: 
       variable: last_action_credit_card
       is: 6_or_more_years 
-  - <b>Do you want to use this defense?</b>: use_defense
-    # need to apply logic that if this is Yes, the cover letter says so. Do I also need to change the checkbox code so that this triggers the checking or unchecking of that box on the form?? 
-    datatype: checkboxes 
-#    input type: radio
+  - <b>Do you want to use this defense?</b>: defense_SOL
+    input type: radio 
     choices:
       - Yes
       - No
-    none of the above: False
     maxlength: 1
     show if:
       variable: last_action_credit_card
@@ -576,14 +569,11 @@ fields:
     show if: 
       variable: last_action_cell_phone
       is: 2_or_more_years
-  - <b>Do you want to use this defense?</b>: use_defense
-    # need to apply logic that if this is Yes, the cover letter says so. Do I also need to change the checkbox code so that this triggers the checking or unchecking of that box on the form?? 
-    datatype: checkboxes 
-#    input type: radio
+  - <b>Do you want to use this defense?</b>: defense_SOL
+    input type: radio 
     choices:
       - Yes
       - No
-    none of the above: False
     maxlength: 1
     show if:
       variable: last_action_cell_phone
@@ -608,14 +598,11 @@ fields:
     show if: 
       variable: last_action_car_loan
       is: 4_or_more_years
-  - <b>Do you want to use this defense?</b>: use_defense
-    # need to apply logic that if this is Yes, the cover letter says so. Do I also need to change the checkbox code so that this triggers the checking or unchecking of that box on the form?? 
-    datatype: checkboxes 
-#    input type: radio
+  - <b>Do you want to use this defense?</b>: defense_SOL
+    input type: radio 
     choices:
       - Yes
       - No
-    none of the above: False
     maxlength: 1
     show if:
       variable: last_action_car_loan
@@ -640,43 +627,40 @@ fields:
     show if: 
       variable: last_action_other
       is: 6_or_more_years 
-  - <b>Do you want to use this defense?</b>: use_defense
-    # need to apply logic that if this is Yes, the cover letter says so. Do I also need to change the checkbox code so that this triggers the checking or unchecking of that box on the form?? 
-    datatype: checkboxes 
-#    input type: radio
+  - <b>Do you want to use this defense?</b>: defense_SOL
+    input type: radio 
     choices:
       - Yes
       - No
-    none of the above: False
     maxlength: 1
     show if:
       variable: last_action_other
       is: 6_or_more_years 
     label above field: True
 ---
-code: |
-  def get_defense_SOL(type_of_debt, last_action_credit_card=None, last_action_cell_phone=None, last_action_car_loan=None, last_action_other=None):
-      if type_of_debt == "Credit card" and last_action_credit_card == "6_or_more_years":
-          return True
-      elif type_of_debt == "Cell phone" and last_action_cell_phone == "2_or_more_years":
-          return True
-      elif type_of_debt == "Car loan" and last_action_car_loan == "4_or_more_years":
-          return True
-      elif type_of_debt == "Other" and last_action_other == "6_or_more_years":
-          return True
-      else:
-          return False
+#code: |
+#  def get_defense_SOL(type_of_debt, last_action_credit_card=None, last_action_cell_phone=None, last_action_car_loan=None, last_action_other=None):
+#      if type_of_debt == "Credit card" and last_action_credit_card == "6_or_more_years":
+#          return True
+#      elif type_of_debt == "Cell phone" and last_action_cell_phone == "2_or_more_years":
+#          return True
+#      elif type_of_debt == "Car loan" and last_action_car_loan == "4_or_more_years":
+#          return True
+#      elif type_of_debt == "Other" and last_action_other == "6_or_more_years":
+#          return True
+#      else:
+#          return False
 
   # Ensure the variables are set based on user input
-  last_action_credit_card = last_action_credit_card if 'last_action_credit_card' in globals() else None
-  last_action_cell_phone = last_action_cell_phone if 'last_action_cell_phone' in globals() else None
-  last_action_car_loan = last_action_car_loan if 'last_action_car_loan' in globals() else None
-  last_action_other = last_action_other if 'last_action_other' in globals() else None
+#  last_action_credit_card = last_action_credit_card if 'last_action_credit_card' in globals() else None
+#  last_action_cell_phone = last_action_cell_phone if 'last_action_cell_phone' in globals() else None
+#  last_action_car_loan = last_action_car_loan if 'last_action_car_loan' in globals() else None
+#  last_action_other = last_action_other if 'last_action_other' in globals() else None
 
-  defense_SOL = get_defense_SOL(type_of_debt, last_action_credit_card, last_action_cell_phone, last_action_car_loan, last_action_other)
+#  defense_SOL = get_defense_SOL(type_of_debt, last_action_credit_card, last_action_cell_phone, last_action_car_loan, last_action_other)
   # Debugging statement to check defense_SOL value
-  print(f"defense_SOL: {defense_SOL}")
----
+#  print(f"defense_SOL: {defense_SOL}")
+#---
   # add logic in attachments block that if the SOL defense may or does apply, it will say either 'this debt may be too old' or 'this debt is too old'. 
 
 
@@ -718,7 +702,7 @@ fields:
       - Energy or Fuel Assistance
       - Other need based 
     label above field: True
-  - Explain: other_exempt
+  - Explain: other_exempt_need_based
     show if: need_based["Other need based"]
     input type: area
 ---
@@ -745,7 +729,7 @@ fields:
       - Death benefits 
       - Other non-need based 
     label above field: True
-  - Explain: other_exempt
+  - Explain: other_exempt_non_need
     show if: non_need_based["Other non-need based"] 
     input type: area
 ---
@@ -847,57 +831,36 @@ fields:
 ---
 code: |
   no_income = (
-      not need_based and
-      not non_need_based and
+      need_based.all_false() and
+      non_need_based.all_false() and
       job_income == "No" and
-      any_income == "No"
+      any_income == "No" 
   )
-# add logic that if there's no income, the cover letter says so OR if there's no income and no money in a bank account, the cover letter says that bank acct money is also exempt. add to attachments block.
+---
+code: |
+  formatted_need_based = [
+      item if item != "Other need based" else other_exempt_need_based
+      for item in need_based.true_values()
+  ]
 
-# add logic to ask if proof will be included if job income = no, and any income = no,  and bank account = yes or no. Then follow up by asking 'Is all of your income used to meet basic living expenses? If so, do you want your letter to say so?'. This should then route to the long_term_income question. 
+  formatted_non_need_based = [
+      item if item != "Other non-need based" else other_exempt_non_need
+      for item in non_need_based.true_values()
+  ]
 ---
-#code: |
-#  def reason_cannot_pay():
-#    if job_income == 'No' and need_based and non_need_based:
-#      return f"I am currently a recipient of need-based assistance and I have no job earnings. All of my income comes from the following exempt sources: {', '.join(need_based)} {', '.join(non_need_based)}."
-#    elif job_income == 'No' and need_based and not non_need_based:
-#      return f"I am currently a recipient of need-based assistance and I have no job earnings. All of my income comes from the following exempt sources: {', '.join(need_based)}."
-#    elif job_income == 'No' and non_need_based and not need_based:
-#      return f"I have no job earnings, and all of my income comes from the following exempt sources: {', '.join(non_need_based)}."
-#    elif no_income:
-#      return f"I have no income whatsoever."
-#    else:
-#      return ""
-#---
----
-comment: |
-  my_dictionary = {
-    "Need One": True,
-    "Need 2": False,
-    "key": "value"
-  }
-  dictionary_2 = {}
-  | "truthy" | "falsy" |
-  | 3 | 0 |
-  | "something" | "" |
-  | [123] | - |
-  | [] | - |
-  | {} | - |
-  | neeed_based | - |
-  Are there any values inside need_based that are equal to True
----
+
 template: reason_cannot_pay
 content: |
   % if job_income == 'No' and need_based.any_true() and non_need_based.any_true():
-  Did it happen? I am currently a recipient of need-based assistance and I have no job earnings. All of my income comes from the following exempt sources: ${ comma_and_list(need_based.true_values() + non_need_based.true_values()) }.
-  % elif job_income == 'No' and need_based and not non_need_based:
-  No, the right thing happened. I am currently a recipient of need-based assistance and I have no job earnings. All of my income comes from the following exempt sources: ${', '.join(need_based)}.
-  % elif job_income == 'No' and non_need_based and not need_based:
-  I have no job earnings, and all of my income comes from the following exempt sources: ${', '.join(non_need_based)}.
+  I am currently a recipient of need-based assistance and I have no job earnings. All of my income comes from the following exempt sources: ${ comma_and_list(formatted_need_based + formatted_non_need_based) }.
+  % elif job_income == 'No' and need_based.any_true() and non_need_based.all_false():
+  I am currently a recipient of need-based assistance and I have no job earnings. All of my income comes from the following exempt sources: ${ comma_and_list(formatted_need_based) }.
+  % elif job_income == 'No' and non_need_based.any_true() and need_based.all_false():
+  I have no job earnings, and all of my income comes from the following exempt sources: ${ comma_and_list(formatted_non_need_based) }. 
   % elif no_income:
   I have no income whatsoever.
   % else:
-  No conditions met 
+  ${ log("🤕reason_cannot_pay logic didn't work correctly") or "" }
   % endif
 ---
 id: proof
@@ -913,6 +876,7 @@ fields:
       - No
   - note: |
       Proof could be a copy of a check stub, a bank statement going back 60 days, a copy of a check, or any document that shows where your income comes from. 
+# add logic to ask if proof will be included if job income = no, and any income = no,  and bank account = yes or no. Then follow up by asking 'Is all of your income used to meet basic living expenses? If so, do you want your letter to say so?'. This should then route to the long_term_income question. 
 ---
 id: basic_living_expenses
 question: |
@@ -943,9 +907,7 @@ fields:
     label above field: True
     show if:
       variable: long_term_income
-      is: Yes
-      
-#  If so, do you want your letter to say so? - incorporate into attachments block if Yes  
+      is: Yes 
 ---
 # this only appears if income exemption questions (job_income and any_income are No. bank_account can be either yes or no. This question follows long_term_income for either yes or no responses.)
 id: asset_exemptions
@@ -955,7 +917,7 @@ question: |
   Next, let's see if any of your assets other than money are Exempt.
 ---
 id: exempt assets - cars
-continue button field: own_car
+#continue button field: own_car
 question: |
   Do you own a car or other motor vehicle?
 fields:
@@ -1102,6 +1064,52 @@ fields:
     show if: 
       variable: home_collateral
       is: Yes
+---
+code: |
+  car_exempt = (
+      own_car == "Yes" and
+      multiple_cars == "No" and
+      primary_transportation == "Yes" and
+      car_equity in ["under_4k"] and
+      car_collateral == "No"
+  )
+---
+code: |
+  if real_estate == "No":
+      own_home = "No"
+---
+code: |
+  home_exempt = (
+      real_estate == "Yes" and
+      own_home == "Yes" and 
+      other_real_estate == "No" and 
+      ( 
+      (farm == "No" and home_equity_farm_no == "$360,000 or less" and home_collateral == "No") or 
+      (farm == "Yes" and home_equity_farm_yes == "$900,000 or less" and home_collateral == "No")
+      )
+  )
+---
+template: exempt_assets
+content: |
+  % if own_car == 'Yes' and own_home == 'Yes' and car_exempt and home_exempt: 
+  Furthermore, my home and motor vehicle are exempt from collection. 
+  % elif own_car == 'Yes' and own_home == 'Yes' and car_exempt and not home_exempt:
+  Furthermore, my motor vehicle is exempt from collection.
+  % elif own_car == 'Yes' and (real_estate == 'No' or (real_estate == 'Yes' and defined("own_home") and own_home == 'No')) and car_exempt:
+  Furthermore, I do not own a home and my motor vehicle is exempt from collection
+  % elif not car_exempt and own_home == 'Yes' and home_exempt:
+  Furthermore, my home is exempt from collection.
+  % elif own_car == 'Yes' and not car_exempt and (real_estate == 'No' or (real_estate == 'Yes' and defined("own_home") and own_home == 'No')):
+  Furthermore, I do not own a home.
+  % elif own_car == 'No' and own_home == 'Yes' and home_exempt:
+  Furthermore, my home is exempt from collection and I do not own a motor vehicle
+  % elif own_car == 'No' and own_home == 'Yes' and not home_exempt:
+  Furthermore, I do not own a motor vehicle.
+  % elif own_car == 'No' and (real_estate == 'No' or (real_estate == 'Yes' and defined("own_home") and own_home == 'No')):
+  Furthermore, I do not own a home or motor vehicle. 
+  % else:
+  ${ log("🤕exempt_assets logic didn't work correctly") or "" }
+  % endif
 ---
 sets:
   - other_parties[i].name.first
@@ -1252,11 +1260,17 @@ fields:
 id: server info
 continue button field: server_info
 question: |
-  
+  % if process_server == "Someone else":
+  Tell us about the person who will serve the papers.
+  % endif
+
 fields:
   - What is your Server's name?: server_name
     datatype: text
     label above field: True
+    show if:
+      variable: process_server
+      is: Someone else
   - Do you know their address?: server_address_known
     datatype: radio
     choices:
@@ -1264,7 +1278,19 @@ fields:
       - No
     label above field: True
   - code: |
-      server_address.address_fields(country_code=AL_DEFAULT_COUNTRY, default_state=AL_DEFAULT_STATE, show_if={ "variable": "server_address_known", "is": "Yes" })    
+      server_address.address_fields(country_code=AL_DEFAULT_COUNTRY, default_state=AL_DEFAULT_STATE, show_if={ "variable": "server_address_known", "is": "Yes" })   
+---
+code: |
+  if process_server == "I will":
+      server_name = users[0].name.full()
+      server_address = users[0].address
+      server_address_known = "Yes"
+---
+mandatory: True
+question: |
+  Give us your feedback
+subquestion: |
+  ${ only_once_review_widget() }
 ---
 id: preview answer_to_complaint_aos
 question: |
@@ -1409,16 +1435,10 @@ review:
     button: |
       **I do not recognize the Plaintiff and I never borrowed money from the Plaintiff:**
       ${ word(yesno(defense_dont_know_plaintiff)) }
-  - raw html: |
-      ${ next_accordion('Statute of Limitations Defense') }
-#  - Edit: defense_SOL
-#    button: |
-#      **Statute of Limitations defense applies:**
-#      ${ word(yesno(defense_SOL)) }
-  - note: |
-      **Statute of Limitations defense applies:**
+  - Edit: defense_SOL
+    button: |
+      **Plaintiff’s claims are barred by the applicable statute of limitations:**
       ${ word(yesno(defense_SOL)) }
-    # If one of the SOL defenses is valid (credit card (6+ years), cell phone (2+ years), car loan (4+ years), other (6+ years)), this should be Yes. Otherwise, No. 
   - raw html: |
       ${ next_accordion('Income Exemptions') }
   - Edit: need_based
@@ -1426,10 +1446,21 @@ review:
       **Government Assistance:**
       
       - **Need Based:**
-      ${ need_based.true_values() }
+      % if "Other need based" in need_based.true_values():
+        ${ ", ".join([item if item != "Other need based" else other_exempt_need_based for item in need_based.true_values()]) }
+        % else:
+          ${ ", ".join(need_based.true_values()) }
+         % endif
+  - Edit: non_need_based
+    button: |
       
       - **Non-Need Based:**
-      ${ non_need_based.true_values() }
+      % if "Other non-need based" in non_need_based.true_values():
+       ${ ", ".join([item if item != "Other non-need based" else other_exempt_non_need for item in non_need_based.true_values()]) }
+       % else:
+         ${ ", ".join(non_need_based.true_values()) }
+       % endif
+
 #  - Edit: other_exempt
 #    button: |
 #      **Other exempt income**:
@@ -1446,7 +1477,7 @@ review:
     show if: job_income
   - Edit: bank_account
     button: |
-      **Money in the bank:**
+      **Money in the bank that is NOT from exempt sources:**
       ${ word(bank_account) }
   - Edit: long_term_income
     button: |
@@ -1459,24 +1490,47 @@ review:
     button: |
       **Vehicles:**
 
-      - **Do you own a vehicle?:** ${ word(yesno(own_car)) }
-      - **Do you own more than one vehicle?:** ${ word(yesno(multiple_cars)) }
-      - **Is the vehicle your primary source of transportation?:** ${ word(yesno(primary_transportation)) }
+      - **Do you own a vehicle?:** 
+      ${ word(own_car) }
+       % if defined("multiple_cars"):
+       - **Do you own more than one vehicle?:** 
+       ${ word(multiple_cars) }
+       % endif
+       % if defined("primary_transportation"):
+       - **Is the vehicle your primary source of transportation?:** 
+       ${ word(primary_transportation) }
+       % endif
+
   - Edit: real_estate
     button: | 
       **Real Estate:**
       
-      - **Do you own any real estate?:** ${ word(yesno(real_estate)) }
-      - **Do you own your home?:** ${ word(yesno(own_home)) }
-      - **Do you own any other real estate?:** ${ word(yesno(other_real_estate)) }
-      - **Is your home used for farm or agriculture?:** ${ word(yesno(farm)) }
-      - **Home equity (if farm):** ${ home_equity_farm_yes if farm == 'Yes' else '' }
-      - **Home equity (if not farm):** ${ home_equity_farm_no if farm == 'No' else '' }
-      % if 'home_collateral' in globals():
-        - **Home collateral:** ${ home_collateral }
-      % else:
-        - **Home collateral:** Not applicable
-      % endif
+      - **Do you own any real estate?:** ${ word(real_estate) }
+       % if defined("own_home"):
+       - **Do you own your home?:** 
+       ${ word(own_home) }
+       % endif
+       % if defined("other_real_estate"):
+       - **Do you own any other real estate?:** 
+       ${ word(other_real_estate) }
+       % endif
+       % if defined("farm"):
+       - **Is your home used for farm or agriculture?:** 
+       ${ word(farm) }
+       - **Home equity (if farm):** 
+       ${ home_equity_farm_yes if farm == 'Yes' else 'Not Applicable' }
+       - **Home equity (if not farm):** 
+       ${ home_equity_farm_no if farm == 'No' else 'Not Applicable' }
+       % endif
+       % if defined("home_collateral"):
+       - **Home collateral:** ${ word(home_collateral) }
+       % endif
+
+#      % if 'home_collateral' in globals():
+#        - **Home collateral:** ${ home_collateral }
+#      % else:
+#        - **Home collateral:** Not applicable
+#      % endif
 #  % endif
   - raw html: |
       ${ next_accordion('Service of Process') }
@@ -1612,7 +1666,13 @@ attachment:
       - "trial_court_district": ${ trial_court_district }  
       - "docket_number": ${ docket_number }
       - "the_county": ${ the_county }
+      - "notary_county": ${ notary_county }
 #      - "users1_name": ${ users[0] }
+      - "server_name": ${ server_name }
+      - "server_address_line_one": ${ server_address.line_one() }
+      - "server_address_line_two": ${ server_address.line_two() }
+      - "server_phone_number": ${ server[0].phone_number }
+      - "service_method": ${ service_method }
       - "attorneys_name": ${ attorneys[0] }
       - "attorneys_address_address": ${ attorneys[0].address.address }
       - "attorneys_address_line_two": ${ attorneys[0].address.line_two() }
@@ -1647,7 +1707,6 @@ attachment:
       - "defense_unagreeable_charges": ${ defense_unagreeable_charges }
       - "defense_dont_know_plaintiff": ${ defense_dont_know_plaintiff }
       - "defense_SOL": ${ defense_SOL } 
-      - "use_defense": ${ use_defense["Yes"] } #how to set logic so that this triggers only when use_defense = Yes? Is this right?
       - "date_answer": ${ today() }
 ---
 attachment:
