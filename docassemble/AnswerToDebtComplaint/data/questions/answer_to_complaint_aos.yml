@@ -96,7 +96,8 @@ objects:
   - users: ALPeopleList.using(target_number=1, ask_number=True)
   - the_courts: ALCourtLoader.using(filename="Courts.xlsx")
   - other_parties: ALPeopleList.using(target_number=1, ask_number=True)
-  - attorneys: ALPeopleList.using(there_is_another=False)
+#  - attorneys: ALPeopleList.using(there_is_another=False)
+  - other_parties[i].attorney: ALIndividual
   - server_address: ALAddress
 ---
 sections:
@@ -200,17 +201,22 @@ code: |
   set_progress(64)
   other_parties.gather()
   original_creditor
-  attorneys.gather()
-  if attorneys.number() > 0:
-    for attorney in attorneys:
-      attorney.address.address
-  else:
-    for party in other_parties:
-      party.address.address
-  set_progress(32)
-  if attorneys.number() > 0:
-    for attorney in attorneys:
-      attorneys[0].fax_number
+  has_attorney_set
+  does_party_have_attorney
+  collect_attorney_info
+  addresses_collected
+  show_address_flags_set
+  #attorneys.gather()
+  #if attorneys.number() > 0:
+  #  for attorney in attorneys:
+  #    attorney.address.address
+  #else:
+  #  for party in other_parties:
+  #    party.address.address
+  #set_progress(32)
+  #if attorneys.number() > 0:
+  #  for attorney in attorneys:
+  #    attorneys[0].fax_number
   #date_answer
   service_of_process
   process_server
@@ -357,6 +363,7 @@ question: |
 subquestion: |
   ${ my_court.address.block() }
 ---
+#need to remove this continue button because it's competing w/the field name, but when i remove this, it messes up the interview order
 continue button field: docket_number
 id: docket number
 question: |
@@ -1156,13 +1163,43 @@ fields:
       variable: original_creditor
       is: Not sure
 ---
-id: attorneys
-generic object: ALPeopleList
+#id: attorneys
+#generic object: ALPeopleList
+#question: |
+#  Does ${ other_parties } have any attorneys?
+#fields:
+#  - no label: attorneys.there_are_any
+#    datatype: yesnoradio
+---
+#testing
+#id: assign attorney
+#question: |
+#  Who is the attorney for ${ other_parties[i] }?
+#fields:
+#  - no label: other_parties[i].attorney
+#    datatype: object
+#    object labeler: |
+#      lambda y: y.name.full()
+#    choices: attorneys
+#    show if: other_parties[i].has_attorney
+id: does_party_have_attorney
 question: |
-  Does ${ other_parties } have any attorneys?
+  Does ${ other_parties[i] } have an attorney?
 fields:
-  - no label: attorneys.there_are_any
+  - no label: other_parties[i].has_attorney
     datatype: yesnoradio
+---
+id: collect_attorney_info
+question: |
+  What is the attorney's name and address for ${ other_parties[i] }?
+fields:
+  - First name: other_parties[i].attorney.name.first
+  - Last name: other_parties[i].attorney.name.last
+  - Address: other_parties[i].attorney.address.address
+  - City: other_parties[i].attorney.address.city
+  - State: other_parties[i].attorney.address.state
+  - Zip: other_parties[i].attorney.address.zip
+show if: other_parties[i].has_attorney
 ---
 id: attorney fax number
 generic object: ALIndividual
@@ -1174,6 +1211,39 @@ validation code: |
       if not phone_number_is_valid(x.fax_number):
         validation_error("Please enter a fax number in the format (xxx) xxx-xxxx", field="x.fax_number")
       x.fax_number = phone_number_formatted(x.fax_number)
+---
+#testing
+id: set default has_attorney
+mandatory: True
+code: |
+  for party in other_parties:
+      if not hasattr(party, 'has_attorney'):
+          party.has_attorney = False
+  has_attorney_set = True
+---
+#testing
+
+id: collect addresses
+mandatory: True
+code: |
+  for party in other_parties:
+      if not party.has_attorney:
+          party.address.address
+      else:
+          party.attorney.address.address
+          party.attorney.fax_number
+  addresses_collected = True
+---
+#testing
+id: set show_address flags
+mandatory: True
+code: |
+  for party in other_parties:
+      if not hasattr(party, 'attorney') or not hasattr(party.attorney, 'address') or not defined('party.attorney.address.address'):
+          party.show_address = True
+      else:
+          party.show_address = False
+  show_address_flags_set = True
 ---
 id: service of process explained
 mandatory: False
@@ -1582,13 +1652,14 @@ rows: other_parties
 columns:
   - Name: |
       row_item.name.full() if defined("row_item.name.first") else ""
+#  - Address: |
+#      row_item.address.block() if defined("row_item.address.address") else ""
   - Address: |
-      row_item.address.block() if defined("row_item.address.address") else ""
+      row_item.address.block() if row_item.show_address() and defined("row_item.address.address") else ""
 edit:
   - name.first
   - address.address
 confirm: True
-
 ---
 continue button field: users.revisit
 question: |
