@@ -1,6 +1,11 @@
 ---
+modules:
+  - docassemble.demo.accordion
+---
 include:
   - docassemble.AssemblyLine:assembly_line.yml
+  - docassemble.ALToolbox:collapse_template.yml
+  - docassemble.GithubFeedbackForm:embedded_review.yml
 ---
 metadata:
   title: >-
@@ -18,8 +23,8 @@ metadata:
   estimated_completion_delta: 30
   LIST_topics: 
     - "MO-00-00-00-00"
-  tags:
-    - "MO-00-00-00-00"
+#  tags:
+#    - "MO-00-00-00-00"
   authors:
     - Court Forms Online
   original_form: []
@@ -46,18 +51,78 @@ code: |
   AL_DEFAULT_STATE = "MN"
 ---
 code: |
+  AL_ORGANIZATION_TITLE = "LawHelpMN"
+---
+code: |
   github_repo_name =  'docassemble-AnswerToComplaintAos'
 ---
 code: |
-  interview_short_title = "Ask the court for a Answer to complaint aos"
+  interview_short_title = "Answer to Debt Collection Complaint"
 ---
 code: |
   al_form_type = "existing_case" 
 ---
+template: original_creditor_explanation
+subject: |
+  What is the original creditor?
+content: |
+  The original creditor is the person or business you first owed the debt to. Knowing who that is can be tricky. For example, if the debt was from a Sears charge card, you might think Sears is the original creditor, but the original creditor would actually be Citibank.
+    
+    In many debt collection lawsuits, the plaintiff is someone who bought the debt from the original creditor. That means the plaintiff is not the original creditor. If the plaintiff bought the debt from the original creditor, it may say so in the Complaint. Read through the paragraphs of the Complaint, and see if any of them say anything like this: "... on such and such a date, XYZ Collection Company (the Plaintiff) purchased the debt or obligation from ABC Business ... ".
+    
+    If you can't tell who the original creditor is, you might need to ask a lawyer.
+---
+template: admit_deny_explanation
+subject: |
+  IMPORTANT INFORMATION ABOUT ANSWERING THE COMPLAINT
+content: |
+  A Complaint is made up of a number of "paragraphs." Each paragraph should be labeled with a number. When you answer a Complaint, you do not answer it all at once. Instead, you respond to each paragraph, one by one. Answer every paragraph. 
+  
+  Read each paragraph carefully and <b>don't Admit the paragraph unless you know that all the claims are true</b>. For example, a paragraph may say that the Plaintiff is the original creditor, or that they bought the debt from the original creditor. Do you know this is true? Do you recognize the Plaintiff's name from when the debt started? If the Plaintiff says they bought the debt, have they shown you proof? 
+  
+  Look for typos or mistakes. For example, the first paragraph may just say what your name is, like this: "<i>Defendant's name is Test Test</i>". If it gets your name right, then you "Admit" that the paragraph is true. If it gets your name wrong, you can "Deny" that it is true. 
+  
+  Another paragraph may say you owe $4,546.24. Do you know if fees and interest were added to your debt? If so, do you know if they were added up correctly? Do you know if you even agreed to pay each of those fees in the contract you signed? Have you re-read the contract, and checked the math yourself? If you don't know, just click "Do Not Know."
+
+  Some paragraphs may make more than one claim. <b>Do not Admit the paragraph unless you know that all the claims are true.</b>
+
+  <b>Remember these three simple rules:</b>
+  
+  - Do not Admit anything unless you know it is true.
+  - Do not Deny anything unless you know it is false. 
+  - If you do not know, just click "Do Not Know."
+#---
+#mandatory: True
+#code: |
+#  users[0].name.first
+#  users[0].address.address
+  # The `if` statement below ensures that docassemble never triggers the screens about
+  # `server` unless necessary.
+#  if not process_server == "I will":
+#    server.name.first
+  
+#  final_screen
+---
+#mandatory: True
+#code: |
+#  intro_section_completed
+#  store_variables_snapshot(key='intro')
+#---
+#mandatory: True
+#code: |
+#  final_section_completed
+#  store_variables_snapshot(key='final')
+---
 objects:
-  - users: ALPeopleList.using(complete_attribute="complete")
+  - users: DAList.using(object_type=ALIndividual, ask_number=True, target_number=1)
+#  - users: ALPeopleList.using(target_number=1, ask_number=True)
   - the_courts: ALCourtLoader.using(filename="Courts.xlsx")
-  - other_parties: ALPeopleList #.using(complete_attribute="complete",there_are_any=True)
+  - other_parties: ALPeopleList.using(target_number=1, ask_number=True)
+  - attorneys: ALPeopleList.using(there_is_another=False)
+#  - other_parties[i].attorney: ALIndividual
+  - server: ALIndividual
+#  - server_address: ALAddress
+  - al_logo: DAStaticFile.using(filename="MNfavicon-96x96.png", alt_text="LawHelpMN")
 ---
 sections:
   - review_answer_to_complaint_aos: Review your answers
@@ -78,7 +143,7 @@ code: |
     trial_court_district
   trial_court_district
   display_court
-  docket_number
+  file_number
   set_progress(16)
   users_name
   users[0].address.address
@@ -87,36 +152,177 @@ code: |
   account_number
   admit
   set_progress(48)
-  defense_wrong_person
-  type_of_debt
-  last_action
+  defense_insufficient_service
+  type_of_debt 
   exemptions
+  need_based    
+  non_need_based
   job_income
-  any_income # add logic to only show if job_income is No
-  bank_account #add logic to only show if any_income is No
+  if job_income == "Yes":
+    other_parties.gather()          
+    original_creditor
+    attorneys.gather()
+    if attorneys.number() > 0:
+      for attorney in attorneys:
+        attorney.address.address
+    else:
+      for party in other_parties:
+        party.address.address
+    if attorneys.number() > 0:
+      for attorney in attorneys:
+        attorneys[0].fax_number
+    service_of_process
+    process_server
+    if process_server == "I will":
+      service_method
+      if service_method == "Mail":
+        serve_mail  
+        notary_county
+      if service_method == "Fax":
+        serve_fax
+        notary_county
+      if service_method == "In Person":
+        notary_county
+      if service_method == "I don't know":
+        notary_county
+      notary_county
+    if process_server == "Someone else":
+      server_info
+      service_method
+      if service_method == "Mail":
+        serve_mail  
+        notary_county
+      if service_method == "Fax":
+        serve_fax
+        notary_county
+      if service_method == "In Person":
+        notary_county
+      if service_method == "I don't know":
+        notary_county
+      notary_county
+    if process_server == "Not sure yet":
+      notary_county
+  if job_income == "No":
+    any_income
+    if any_income == "Yes":
+      other_parties.gather()        
+    if any_income == "No":
+      bank_account
+      if bank_account == "Yes":
+        proof
+        basic_living_expenses
+        long_term_income
+        asset_exemptions
+        own_car
+        if own_car == "No":
+          real_estate
+        if own_car == "Yes":
+          multiple_cars
+          if multiple_cars == "Yes":
+            real_estate
+          if multiple_cars == "No":
+            primary_transportation
+            if primary_transportation == "Yes":
+              car_equity
+              if car_equity == "under_4k":
+                car_collateral
+              real_estate
+            if primary_transportation == "No":
+              real_estate
+              if real_estate == "Yes":
+                own_home
+                if own_home == "Yes":
+                  other_real_estate
+                  if other_real_estate == "No":
+                    farm
+      if bank_account == "No":
+        proof
+        basic_living_expenses      
+        long_term_income
+        asset_exemptions
+        own_car
+        if own_car == "No":
+          real_estate
+        if own_car == "Yes":
+          multiple_cars
+          if multiple_cars == "Yes":
+            real_estate
+          if multiple_cars == "No":
+            primary_transportation
+            if primary_transportation == "Yes":
+              car_equity
+              if car_equity == "under_4k":
+                car_collateral
+              real_estate
+            if primary_transportation == "No":
+              real_estate
+              if real_estate == "Yes":
+                own_home
+                if own_home == "Yes":
+                  other_real_estate
+                  if other_real_estate == "No":
+                    farm
+    exempt_assets
   reason_cannot_pay
-  own_car
-  multiple_cars #add logic that if own_car is Yes, ask this
-  primary_transportation #add logic that if multiple_cars is No, ask this
-  car_equity #add logic that if primary_transportation is Yes, then ask this
-  car_collateral #add logic that if car_equity is under 4k, ask this question
-  real_estate
-  own_home #add logic that if real_estate is Yes, ask this
-  other_real_estate #add logic that if own_home is Yes, ask this
-  farm #add logic that if other_real_estate is NO, ask this
-  home_equity_farm_yes #add logic that if farm is Yes, ask this
-  home_equity_farm_no #add logic that if farm is No, ask this
-  home_collateral ##add logic to ask this if farm is Yes AND equity is 900k or less OR if farm is No AND equity is 360k or less 
+  #exempt_assets
   set_progress(64)
   other_parties.gather()
   original_creditor
+  #other_parties[0].has_attorney
+  #if other_parties[0].has_attorney == "Yes":
+    #collect_attorney_name
+  #  other_parties[0].attorney.gather()
+  #if other_parties[0].has_attorney == "No":
+  #  other_parties[0].address.address
+    #party.address.address
+  #else:
+  #  for party in other_parties:
+  #    other_parties[0].address.address
+      #party.address.address
   attorneys.gather()
-  attorneys[0].address.address
-  set_progress(32)
-  attorneys[0].fax_number
-  date_answer
+  if attorneys.number() > 0:
+    for attorney in attorneys:
+      attorney.address.address
+  else:
+    for party in other_parties:
+      party.address.address
+  #set_progress(32)
+  if attorneys.number() > 0:
+    for attorney in attorneys:
+      attorneys[0].fax_number
+  #date_answer
+  service_of_process
   process_server
-  service_method #add logic to only show if process_server is 'I will'
+  if process_server == "I will":
+    service_method
+    if service_method == "Mail":
+      serve_mail  
+      notary_county
+    if service_method == "Fax":
+      serve_fax
+      notary_county
+    if service_method == "In Person":
+      notary_county
+    if service_method == "I don't know":
+      notary_county
+    notary_county
+  if process_server == "Someone else":
+    server_info
+    service_method
+    if service_method == "Mail":
+      serve_mail  
+      notary_county
+    if service_method == "Fax":
+      serve_fax
+      notary_county
+    if service_method == "In Person":
+      notary_county
+    if service_method == "I don't know":
+      notary_county
+    notary_county
+  if process_server == "Not sure yet":
+    notary_county
+  #debug_continue
   interview_order_answer_to_complaint_aos = True
 ---
 ###################### Main order ######################
@@ -154,20 +360,18 @@ subquestion: |
 
   Most people take about 20 minutes to complete this interview.
   
-#add a 'do you agree' button w/logic to kick out if answer is 'no'.
+#add a 'do you agree' button w/logic to kick out if answer is 'no'. Do I need this if we'll be updating the Terms of Use to our own and asking users to agree to those??
 ---
 id: ineligible cases
 question: |
-  Is the debt for this lawsuit from:
+  Is the debt for this lawsuit from any of the following?
 subquestion: |
 
     - Child support
     - Spousal support
     - Taxes
-    - Student loans?
+    - Student loans
 yesno: ineligible_cases
-
-#add logic to kick out if answer is 'yes' - how do I make this solely a statement and add the Exit button, rather than displaying as a field to collect data? 
 ---
 mandatory: True
 code: |
@@ -194,43 +398,44 @@ code: |
     court_index
     my_court = the_courts.as_court("my_court", court_index)
 ---
+code: |
+  def get_judicial_district(the_county):
+      if the_county in ["McLeod", "Sibley", "Carver", "Scott", "Dakota", "Le Sueur", "Goodhue"]:
+          return "First Judicial District"
+      elif the_county == "Ramsey":
+          return "Second Judicial District"
+      elif the_county in ["Rice", "Waseca", "Steele", "Dodge", "Olmsted", "Wabasha", "Winona", "Freeborn", "Mower", "Fillmore", "Houston"]:
+          return "Third Judicial District"
+      elif the_county == "Hennepin":
+          return "Fourth Judicial District"
+      elif the_county in ["Lincoln", "Lyon", "Redwood", "Brown", "Nicollet", "Pipestone", "Murray", "Cottonwood", "Watonwan", "Blue Earth", "Rock", "Nobles", "Jackson", "Martin", "Faribault"]:
+          return "Fifth Judicial District"
+      elif the_county in ["St. Louis", "Lake", "Cook", "Carlton"]:
+          return "Sixth Judicial District"
+      elif the_county in ["Clay", "Becker", "Otter Tail", "Wadena", "Douglas", "Todd", "Morrison", "Mille Lacs", "Stearns", "Benton"]:
+          return "Seventh Judicial District"
+      elif the_county in ["Wilkin", "Grant", "Traverse", "Big Stone", "Stevens", "Pope", "Swift", "Lac qui Parle", "Kandiyohi", "Chippewa", "Meeker", "Yellow Medicine", "Renville"]:
+          return "Eighth Judicial District"
+      elif the_county in ["Kittson", "Roseau", "Lake of the Woods", "Marshall", "Beltrami", "Koochiching", "Pennington", "Red Lake", "Polk", "Clearwater", "Norman", "Mahnomen", "Hubbard", "Cass", "Itasca", "Crow Wing", "Aitkin"]:
+          return "Ninth Judicial District"
+      elif the_county in ["Pine", "Kanabec", "Sherburne", "Isanti", "Chisago", "Anoka", "Wright", "Washington"]:
+          return "Tenth Judicial District"
+      else:
+          return "Unknown Judicial District"
+
+  trial_court_district = get_judicial_district(the_county)
+---
 id: district and county
 question: |
-  What court was your case filed in?
+  What county are you being sued in?
 fields:
-  - Judicial District: trial_court_district
-    choices: 
-      - 1st
-      - 2nd
-      - 3rd
-      - 4th
-      - 5th
-      - 6th
-      - 7th
-      - 8th
-      - 9th 
-      - 10th
-    help: |
-       There are 10 judicial districts in Minnesota.
-       **1st**: McLeod, Sibley, Carver, Scott, Dakota, Le Sueur, Goodhue
-       **2nd**: Ramsey    
-       **3rd**: Rice, Waseca, Steele, Dodge, Olmsted, Wabasha, Winona, Freeborn, Mower, Fillmore, Houston
-       **4th**: Hennepin
-       **5th**: Lincoln, Lyon, Redwood, Brown, Nicollet, Pipestone, Murray, Cottonwood, Watonwan, Blue Earth, Rock, Nobles, Jackson, Martin, Faribault
-       **6th**: St. Louis, Lake, Cook, Carlton
-       **7th**: Clay, Becker, Otter Tail, Wadena, Douglas, Todd, Morrison, Mille Lacs, Stearns, Benton
-       **8th**: Wilkin, Grant, Traverse, Big Stone, Stevens, Pope, Swift, Lac qui Parle, Kandiyohi, Chippewa, Meeker, Yellow Medicine, Renville
-       **9th**: Kittson, Roseau, Lake of the Woods, Marshall, Beltrami, Koochiching, Pennington, Red Lake, Polk, Clearwater, Norman, Mahnomen, Hubbard, Cass, Itasca, Crow Wing, Aitkin
-       **10th**: Pine, Kanabec, Sherburne, Isanti, Chisago, Anoka, Wright, Washington
-    required: False
-  - Trial court state: trial_court_state
-    code: |
-      states_list()
-    default: Minnesota
-    required: False
-  - Court County: the_county
+  - "no label": the_county
     code: sorted(the_courts.county_list())
-    required: False
+    required: True
+    label above field: True
+    datatype: str
+  - note: |
+      You can find the name of the county in the top left-hand corner of the Complaint.
 ---
 question: |
   There is more than one court in your county. Pick the court below.
@@ -244,20 +449,27 @@ question: |
 subquestion: |
   ${ my_court.address.block() }
 ---
-code: |
-  users[0].name.first
-  users[0].name.last
-  users[0].name.middle
-  users[0].name.suffix
-  users[0].address.address
-  users[0].phone_number
-  users[0].complete = True
+continue button field: file_number
+id: docket number
+question: |
+  What is the Court File Number used to track this case in court?
+fields:
+  - I don't know the case number: dont_know_docket_number
+    datatype: yesno    
+  - Court File Number: docket_number
+    hide if: dont_know_docket_number
+    help: |
+      You can find this in the upper right-hand corner of the Complaint.
 ---
-#sets:
-#  - users[0].name.first
-#  - users[0].name.last
-#  - users[0].name.middle
-#  - users[0].name.suffix  
+code: |
+  users[i].name.first
+  users[i].name.last
+  users[i].name.middle
+  users[i].name.suffix
+  users[i].address.address
+  users[i].phone_number
+  users[i].complete = True
+---
 continue button field: users_name
 id: User name
 question: |
@@ -273,11 +485,15 @@ fields:
   - code: |
       users[0].address_fields(country_code=AL_DEFAULT_COUNTRY, default_state=AL_DEFAULT_STATE)
 ---
-id: users phone number
+id: user phone number
 question: |
   What is your phone number?
-fields:
-  - Phone Number: users[0].phone_number
+fields:  
+  - Phone number: users[0].phone_number
+validation code: |
+  if not phone_number_is_valid(users[0].phone_number):
+    validation_error("Please enter a phone number in the format (xxx) xxx-xxxx", field="phone_number")
+  phone_number = phone_number_formatted(users[0].phone_number)
 ---
 id: account number
 question: |
@@ -288,17 +504,14 @@ fields:
   - "Account number": account_number
     maxlength: 20
     required: False
+    help: |
+      If you have an account number, it should be mentioned somewhere in the Complaint. If the debt was for a bank or credit card, it may say something like "the account number ending in 1234." It should also be on any piece of mail you got about this debt.
 ---
-id: Admit
+id: Admit/deny
 question: |
-  Admit/Deny
+  How will you answer the Complaint? 
 subquestion: |
-  A Complaint is made up of a number of "paragraphs." Each paragraph should be labeled with a number. When you answer a Complaint, you do not answer it all at once. Instead, you respond to each paragraph, one by one. Read each paragraph carefully and <b>don't Admit the paragraph unless you know that all the claims are true</b>. Answer every paragraph.
-  
-  For example, the first paragraph may just say what your name is, like this: "<i>Defendant's name is ${ users[0].name }</i>".
-
-  If it gets your name right, then you "Admit" that the paragraph is true. If it gets your name wrong, you can "Deny" that it is true.
-  
+  ${ collapse_template(admit_deny_explanation) }  
 fields:
   - "<b>I admit the allegations in these paragraphs of the complaint:</b>": admit
     maxlength: 14
@@ -321,7 +534,7 @@ subquestion: |
   
   For example, if you already paid the debt, that is a defense. If the debt is too old, that is also a defense.
   
-  I claim the following Affirmative Defense(s):
+  <b>I claim the following Affirmative Defense(s):</b>
 fields:
   - "Service of process was insufficient": defense_insufficient_service
     datatype: yesnowide
@@ -331,6 +544,8 @@ fields:
     datatype: yesnowide
   - "I don't owe all of the money alleged.": defense_dont_owe
     datatype: yesnowide
+    help: |
+      If the case goes to court, the creditor will have to provide proof of what you owe. If you owe some of the money, but are not sure that the amount claimed by the plaintiff is correct, you can say yes to this defense.
   - "Plaintiff is not my creditor.": defense_not_creditor
     datatype: yesnowide
   - "The debt at issue has been discharged by bankruptcy.": defense_bankruptcy
@@ -339,14 +554,29 @@ fields:
     datatype: yesnowide
   - "Someone used my name and identity without my permission.": defense_id_theft
     datatype: yesnowide
+    help: |
+      Identity theft is when someone gets your personal information (like a social security or bank account number) and uses it to:
+
+        - buy things with your credit card,
+        - take money from your bank account,
+        - open accounts in your name, or
+        - take out loans in your name.
+      
+      If this debt is from identity theft, tell the plaintiff RIGHT AWAY. Write a letter that says the debt is from identify theft, and make a copy of the letter for your records. If the plaintiff has a lawyer, send the letter to the lawyer. If there is no lawyer, send the letter to the plaintiff. 
+
+      Debts that come from identity theft are not valid. If you use the "Identity Theft Defense" and your case goes to court, you will need to prove that the debt is from identity theft.
+
+      File a police report. Creditors often want to see a police report before they will release a debt for identity theft.
+      
   - "There are charges on this account that I did not agree to.": defense_unagreeable_charges
     datatype: yesnowide
   - "I do not recognize the Plaintiff and I never borrowed money from the Plaintiff. Plaintiff has not shown why it has a right to sue me on the alleged debt and the case should be dismissed. Minn.R.Civ.P 17.01.": defense_dont_know_plaintiff
     datatype: yesnowide
 ---
 id: SOL
+#if: defense_SOL == "Yes"
 question: |
-  Finally, let's see if you can use the "Statute of Limitations" defense.
+  Let's see if you can use the "Statute of Limitations" defense.
 subquestion: |
   The Statute of Limitations is a deadline for when anyone can start a lawsuit on the debt by serving you with a Summons and Complaint.
 
@@ -357,169 +587,265 @@ subquestion: |
     - used the account in any way.
    
    Whenever you do any of those things, the deadline clock gets reset. The plaintiff then gets more time to file the lawsuit.
+
+  <b>IMPORTANT!:</b> If you use the Statute of Limitations defense in your Answer and it does not apply, you can be accused of making a "frivolous" claim. That may have serious penalties.
+  
+  But if you don't use it and find out later that it does apply, you may have missed your best chance to win. If it's not in your Answer, you can't bring it up later. <b>Talk to a lawyer first!</b>
+  
 fields:
-  - What kind of debt do you have?: type_of_debt
+  - <b>What kind of debt do you have?</b>: type_of_debt
     input type: radio
     choices:
-      - Credit card
+      - Credit card 
       - Cell phone
       - Car loan
       - Other
-    #none of the above: False
+    label above field: True
   - Explain: other_debt
     show if:
       variable: type_of_debt
       is: Other
-#add logic on each type to explain the SOL timeframe
-    
-#  - "Plaintiff’s claims are barred by the applicable statute of limitations.": defense_SOL   
-#    datatype: yesnowide
-    #add this only on the attachments block
+    input type: area
+  - <b>When was the last time you used the account, made a payment, OR, made a written promise to pay?</b>: last_action_credit_card
+    input type: radio
+    choices:
+      - Less than 3 years ago: less_than_3_years 
+      - 3 to 6 years ago: 3_to_6_years 
+      - 6 or more years ago: 6_or_more_years 
+    show if: 
+      variable: type_of_debt
+      is: Credit card
+    label above field: True
+  - note: |
+      In that case, the Statute of Limitations defense does not apply.
+    show if: 
+      variable: last_action_credit_card
+      is: less_than_3_years
+  - note: |
+      It is not clear if the Statute of Limitations defense applies to your debt. To find out, you need to ask a lawyer first. 
+      
+      Your Answer will print with a box you can check to use this defense, <b>after</b> you ask a lawyer. 
+    show if: 
+      variable: last_action_credit_card
+      is: 3_to_6_years
+  - note: |
+      In that case, you can use the Statute of Limitations defense.
+    show if: 
+      variable: last_action_credit_card
+      is: 6_or_more_years 
+  - <b>Do you want to use this defense?</b>: defense_SOL
+    input type: radio 
+    choices:
+      - Yes
+      - No
+    maxlength: 1
+    show if:
+      variable: last_action_credit_card
+      is: 6_or_more_years 
+    label above field: True
+  - <b>When was the last time you used the account, made a payment, OR, made a written promise to pay?</b>: last_action_cell_phone
+    input type: radio 
+    choices:
+      - Less than 2 years ago: less_than_2_years 
+      - 2 or more years ago: 2_or_more_years 
+    show if:
+      variable: type_of_debt
+      is: Cell phone
+    label above field: True
+  - note: |
+      In that case, the Statute of Limitations defense does not apply.
+    show if: 
+      variable: last_action_cell_phone
+      is: less_than_2_years
+  - note: |
+      In that case, you can use the Statute of Limitations defense.
+    show if: 
+      variable: last_action_cell_phone
+      is: 2_or_more_years
+  - <b>Do you want to use this defense?</b>: defense_SOL
+    input type: radio 
+    choices:
+      - Yes
+      - No
+    maxlength: 1
+    show if:
+      variable: last_action_cell_phone
+      is: 2_or_more_years 
+    label above field: True
+  - <b>When was the last time you used the account, made a payment, OR, made a written promise to pay?</b>: last_action_car_loan
+    input type: radio    
+    choices:
+      - Less than 4 years ago: less_than_4_years 
+      - 4 or more years ago: 4_or_more_years 
+    show if:
+      variable: type_of_debt
+      is: Car loan
+    label above field: True
+  - note: |
+      In that case, the Statute of Limitations defense does not apply.
+    show if: 
+      variable: last_action_car_loan
+      is: less_than_4_years
+  - note: |
+      In that case, you can use the Statute of Limitations defense.
+    show if: 
+      variable: last_action_car_loan
+      is: 4_or_more_years
+  - <b>Do you want to use this defense?</b>: defense_SOL
+    input type: radio 
+    choices:
+      - Yes
+      - No
+    maxlength: 1
+    show if:
+      variable: last_action_car_loan
+      is: 4_or_more_years 
+    label above field: True
+  - <b>When was the last time you used the account, made a payment, OR, made a written promise to pay?</b>: last_action_other
+    input type: radio     
+    choices:
+      - Less than 6 years ago: less_than_6_years 
+      - 6 or more years ago:  6_or_more_years 
+    show if:
+      variable: type_of_debt
+      is: Other
+    label above field: True
+  - note: |
+      In that case, the Statute of Limitations defense does not apply.
+    show if: 
+      variable: last_action_other
+      is: less_than_6_years  
+  - note: |
+     In that case, you can use the Statute of Limitations defense.
+    show if: 
+      variable: last_action_other
+      is: 6_or_more_years 
+  - <b>Do you want to use this defense?</b>: defense_SOL
+    input type: radio 
+    choices:
+      - Yes
+      - No
+    maxlength: 1
+    show if:
+      variable: last_action_other
+      is: 6_or_more_years 
+    label above field: True
+---
+#code: |
+#  def get_defense_SOL(type_of_debt, last_action_credit_card=None, last_action_cell_phone=None, last_action_car_loan=None, last_action_other=None):
+#      if type_of_debt == "Credit card" and last_action_credit_card == "6_or_more_years":
+#          return True
+#      elif type_of_debt == "Cell phone" and last_action_cell_phone == "2_or_more_years":
+#          return True
+#      elif type_of_debt == "Car loan" and last_action_car_loan == "4_or_more_years":
+#          return True
+#      elif type_of_debt == "Other" and last_action_other == "6_or_more_years":
+#          return True
+#      else:
+#          return False
 
-#  - "If this box is checked, Plaintiff’s claims are barred by the applicable statute of limitations.": claims_barred
-#    datatype: yesnowide
-#    show if: defense_SOL
-    #I should just be able to set this up on the attachment block and not show it here.
----
-id: last action 
-question: |
-  When was the last time you:
-subquestion: |
+  # Ensure the variables are set based on user input
+#  last_action_credit_card = last_action_credit_card if 'last_action_credit_card' in globals() else None
+#  last_action_cell_phone = last_action_cell_phone if 'last_action_cell_phone' in globals() else None
+#  last_action_car_loan = last_action_car_loan if 'last_action_car_loan' in globals() else None
+#  last_action_other = last_action_other if 'last_action_other' in globals() else None
 
-    - used the account
-    - made a payment, OR
-    - made a written promise to pay?
-fields:
-  - "no label": last_action
-    datatype: checkboxes
-    choices: 
-      - Less than 6 years ago: less_than_6_years # add logic to follow up with: In that case, the Statute of Limitations defense does not apply.
-      - 6 or more years ago: 6_or_more_years # add logic to follow up with: In that case, you can use the Statute of Limitations defense.
-      # add logic in attachments block to check this box if this is answered
-    none of the above: False
----
-#this snippet seems to have removed plaintiff's address - add that as a complete attribute to the object 
-id: original creditor
-question: |
-  Is the Plaintiff the "original creditor" for this debt?
-yesnomaybe: original_creditor
-#fields:
-#  - "no label": original_creditor
-    #datatype: checkboxes
-    #choices:
-    #  - Yes: yes
-    #  - No: no
-    #  - Not Sure: not_sure
-    #none of the above: False
-    # add logic on No and Not Sure to say: If the plaintiff is not the original creditor, they have to follow strict rules to prove they really own the debt. Try to talk to a lawyer about this. You should still finish making your Answer today. If you try to talk to a lawyer before you serve and file your Answer, make sure you meet the 20 day deadline!
----
-id: who will be on this form
-generic object: ALPeopleList
-question: |
-  Does the Plaintiff have an ${noun_plural(x.object_name())}?
-fields:
-  - no label: x.there_are_any
-    datatype: yesnoradio
----
-generic object: ALPeopleList
-id: any other people
-question: |
-  Are there any other ${ noun_plural(x.object_name()) }?
-fields:
-  - no label: x.there_is_another
-    datatype: yesnoradio
----
-#Can I just set this to today's date on the attachment block?
-id: Date answer
-question: |
-  Date answer
-fields:
-  - "Date answer": date_answer
-    maxlength: 18
----
-id: process server
-question: |
-  Who will be the process server?
-field: process_server
-buttons:
-  - I will
-  - Someone else # add logic to collect this person's name and address, if known and THEN continue to the service_method logic
-  - Not sure yet
----
-#add logic so this only appears if process_server is 'I will' and later 'someone else'
-id: service method
-question: |
-  Will you Serve the Answer through the mail, through fax, or in person?
-field: service_method
-buttons:
-  - Mail #add logic to follow up with: What city will amanda sauber mail the Answer from? Leave this blank if you do not know. You can write it in later. AND THEN: In what county will amanda sauber get the Affidavit of Service Notarized? Do not answer if you do not know. You can write it in later.
-  - Fax #add logic to follow up with: What fax number will amanda sauber send the Answer to? Leave this blank if you do not know. You can write it in later. AND THEN: In what county will amanda sauber get the Affidavit of Service Notarized? Do not answer if you do not know. You can write it in later.
-  - In Person #add logic to follow up with: In what county will amanda sauber get the Affidavit of Service Notarized? Do not answer if you do not know. You can write it in later.
-  - Unsure
----
-id: exempt income and assets
+#  defense_SOL = get_defense_SOL(type_of_debt, last_action_credit_card, last_action_cell_phone, last_action_car_loan, last_action_other)
+  # Debugging statement to check defense_SOL value
+#  print(f"defense_SOL: {defense_SOL}")
+#---
+  # add logic in attachments block that if the SOL defense may or does apply, it will say either 'this debt may be too old' or 'this debt is too old'. 
+
+
+# NOTE: LHI takes the user through an explanation of what 'proof' is and then the SOP portion if the user indicates that want to use the SOL defense that the debt may be or is too old, before getting into income/assets. The 'proof' explanation is skipped if the SOL defense does not apply. This info should go mostly in instructions rather than the interview flow. The interview does ask who will do the service and asks for county of notary but this should go at the end of the info gathering. 
+#---
+id: exemptions
+mandatory: False
 continue button field: exemptions
 question: |
-  Exempt Income and Assets
+  Exempt income and assets
 subquestion: |
   Even if the plaintiff wins in court, there are some income and assets they can never take. These are called "Exempt" income and assets.
   
   Let's find out if your income and assets are Exempt.
+---
+id: need_based
+question: |
+  Do you currently get money from any of the following government programs?
+subquestion: |
+  Select all that apply. 
 fields: 
-  - Do you currently get money from any need-based government programs?: need_based
+  - "no label": need_based
     datatype: checkboxes
     choices:
-      - SSI - Supplemental Security Income: ssi
-      - MFIP - Minnesota Family Investment Program: mfip
-      - MFIP Diversionary Work Program: dwp
-      - Work Participation Cash Benefit: cash
-      - GA - General Assistance: ga
-      - EA - Emergency Assistance: ea
-      - MA - Medical Assistance: ma
-      - EGA - Emergency General Assistance: ega
-      - MSA - Minnesota Supplemental Aid: msa
-      - MSA-EA - MSA Emergency Assistance: msa_ea
-      - Food Support: food_support
-      - MinnesotaCare: mncare
-      - Medicare Part B Premium Payments: partb
-      - Medicare Part D Extra Help: partd
-      - Energy or Fuel Assistance: energy_asst
-      - Other Exempt Income: other_exempt  ##add logic to include a text box on this option
+      - SSI - Supplemental Security Income
+      - MFIP - Minnesota Family Investment Program
+      - MFIP Diversionary Work Program
+      - Work Participation Cash Benefit
+      - GA - General Assistance
+      - EA - Emergency Assistance
+      - MA - Medical Assistance
+      - EGA - Emergency General Assistance
+      - MSA - Minnesota Supplemental Aid
+      - MSA-EA - MSA Emergency Assistance
+      - Food Support
+      - MinnesotaCare
+      - Medicare Part B Premium Payments
+      - Medicare Part D Extra Help
+      - Energy or Fuel Assistance
+      - Other need based 
     label above field: True
-  - Do you get income from one or more Exempt, non-need-based sources?: non_need_based
+  - Explain: other_exempt_need_based
+    show if: need_based["Other need based"]
+    input type: area
+---
+id: non_need_based
+question: |
+  Do you get income from any of the following sources?
+subquestion: |
+  Select all that apply.
+fields: 
+  - "no label": non_need_based
     datatype: checkboxes
     choices:
-      - Workers Compensation: work_comp
-      - Unemployment: unemployment
-      - Veteran Benefits: vet_benefits
-      - Social Security: soc_sec
-      - Child Support: child_support
-      - Damages from an accident: accident_damages
-      - Disability payments: disability
-      - Retirement pension or annuity: pension_or_annuity
-      - Life insurance payments: life_ins
-      - Money earned by any child of yours who is under age 18: money_for_kids
-      - Money from a claim for damage or destruction of property: property_damages
-      - Death benefits: death_benefits
+      - Workers Compensation 
+      - Unemployment
+      - Veteran Benefits 
+      - Social Security 
+      - Child Support 
+      - Damages from an accident
+      - Disability payments 
+      - Retirement pension or annuity 
+      - Life insurance payments 
+      - Money earned by any child of yours who is under age 18 
+      - Money from a claim for damage or destruction of property
+      - Death benefits 
+      - Other non-need based 
     label above field: True
+  - Explain: other_exempt_non_need
+    show if: non_need_based["Other non-need based"] 
+    input type: area
 ---
 id: job income
+#if: defined("job_income")
 question: |
   Do you get any money from a job?
 fields:
   - "no label": job_income
-    datatype: yesnoradio
-    #add logic on 'Yes': It looks like some of your income may be Exempt, but not all of it. - check if this is always the response or is this partial exemption based on my previous selections? 
-# add logic that if there's no income, the cover letter says so 
----
-#  add logic on 'No' to job income
-id: any income
-question: |
-  Do you have any income at all?
-fields:
-  - "no label": any_income
-    help:
-      - Income can be money from any of the following sources (this is not a complete list):
+    datatype: radio
+    choices:
+      - Yes
+      - No
+  - note: |
+      It looks like some of your income may be Exempt, but not all of it. 
+    show if: 
+      variable: job_income
+      is: Yes   
+  - <b>Do you have any income at all?</b>: any_income
+    label above field: True
+    help: |
+      Income can be money from any of the following sources (this is not a complete list):
+      
       - Self employment income
       - Farming income
       - Alimony or spousal support
@@ -528,104 +854,207 @@ fields:
       - Stocks or bonds
       - Income from rental property
       - Pension, PERS or 401(k) retirement benefits
-      - Social Security*
-      - SSI*
-      - Disability Benefits*
-      - Veterans Benefits*
-      - Child Support*
-      - MN Family Investment Program (MFIP)*
-      - General Assistance (GA)*
+      - Social Security
+      - SSI
+      - Disability Benefits
+      - Veterans Benefits
+      - Child Support
+      - MN Family Investment Program (MFIP)
+      - General Assistance (GA)
       - Other cash assistance from the Department of Human Services
-      - Workers Comp*
-      - Job / Employment*
-      - Unemployment benefits*
-    datatype: yesnoradio
----
-# add logic that if the user has no income, then ask:
-id: bank account
-question: |
-  Do you have any money in a bank account that <b>doesn't</b> come from any of the following?
-subquestion: |
-  
-  - SSI - Supplemental Security Income
-  - MFIP - Minnesota Family Investment Program
-  - MFIP Diversionary Work Program
-  - Work Participation Cash Benefit
-  - GA - General Assistance
-  - EA - Emergency Assistance
-  - MA - Medical Assistance
-  - EGA - Emergency General Assistance
-  - MSA - Minnesota Supplemental Aid
-  - MSA-EA - MSA Emergency Assistance
-  - Food Support
-  - MinnesotaCare
-  - Medicare Part B Premium Payments
-  - Medicare Part D Extra Help
-  - Energy or Fuel Assistance
-  - Child Support
-  - Social Security
-  - Workers' Compensation
-  - Unemployment Benefits
-  - Veterans' Benefits
-  - Income from a minor child
-  - Life insurance payments
-  - Money from an accident
-  - Money from disability
-  - Retirement pension
-  - Retirement annuity
-  - Death benefits
-  - Money from a claim for damaged or destroyed property
-  
-  If you are not sure, answer "Yes." 
-fields:
-  - "no label": bank_account
-    datatype: yesnoradio
-# add logic to follow up with: Do you expect your income to stay the same for the long term future? AND THEN: If so, do you want your letter to say so? ##incorporate attachments block info... 
----
-#not sure I need this question given the logic above - can I just pull this in on the attachments block? How to best do that??? 
-id: Cant pay reason
-question: |
-  Inability to pay 
-subquestion: |
-  Please be advised that regardless of any merits to your case, I have no ability to pay this sum because:
-fields:
-  - "no label": reason_cannot_pay
-    maxlength: 100
-    input type: area
+      - Workers Comp
+      - Job / Employment
+      - Unemployment benefits
+    datatype: radio
+    choices: 
+      - Yes
+      - No
+    show if:
+      variable: job_income
+      is: No
   - note: |
-      In addition, any money in my bank account(s) is exempt.
-      
-      I am unable to voluntarily pay this sum given my present financial circumstances. All of my current income is used simply to meet basic living needs. I do not expect my financial circumstances to improve at any time in the foreseeable future.
+      It looks like some of your income may be Exempt, but not all of it. 
+    show if: 
+      variable: any_income
+      is: Yes   
+  - <b>Do you have any money in a bank account that doesn't come from any of the following?</b>: bank_account
+    label above field: True
+    under text: |
+     - SSI - Supplemental Security Income
+     - MFIP - Minnesota Family Investment Program
+     - MFIP Diversionary Work Program
+     - Work Participation Cash Benefit
+     - GA - General Assistance
+     - EA - Emergency Assistance
+     - MA - Medical Assistance
+     - EGA - Emergency General Assistance
+     - MSA - Minnesota Supplemental Aid
+     - MSA-EA - MSA Emergency Assistance
+     - Food Support
+     - MinnesotaCare
+     - Medicare Part B Premium Payments
+     - Medicare Part D Extra Help
+     - Energy or Fuel Assistance
+     - Child Support
+     - Social Security
+     - Workers' Compensation
+     - Unemployment Benefits
+     - Veterans' Benefits
+     - Income from a minor child
+     - Life insurance payments
+     - Money from an accident
+     - Money from disability
+     - Retirement pension
+     - Retirement annuity
+     - Death benefits
+     - Money from a claim for damaged or destroyed property
+     
+     <b>If you are not sure, answer "Yes."</b>
+    datatype: radio
+    choices:
+      - Yes
+      - No
+    show if: 
+      variable: any_income
+      is: No
+  - note: |
+      <i>Your cover letter will also say that any money in your bank account is Exempt.</i>
+    show if: 
+      variable: bank_account
+      is: No
 ---
-# does this always appear or only based on how the user answers the income exemption questions?
-id: exempt assets - cars
+code: |
+  no_income = (
+      need_based.all_false() and
+      non_need_based.all_false() and
+      job_income == "No" and
+      any_income == "No" 
+  )
+---
+code: |
+  formatted_need_based = [
+      item if item != "Other need based" else other_exempt_need_based
+      for item in need_based.true_values()
+  ]
+
+  formatted_non_need_based = [
+      item if item != "Other non-need based" else other_exempt_non_need
+      for item in non_need_based.true_values()
+  ]
+---
+
+template: reason_cannot_pay
+content: |
+  % if job_income == 'No' and need_based.any_true() and non_need_based.any_true():
+  Please be advised that regardless of any merits to your case, I have no ability to pay this sum because I am currently a recipient of need-based assistance and I have no job earnings. All of my income comes from the following exempt sources: ${ comma_and_list(formatted_need_based + formatted_non_need_based) }.
+  % elif job_income == 'No' and need_based.any_true() and non_need_based.all_false():
+  Please be advised that regardless of any merits to your case, I have no ability to pay this sum because I am currently a recipient of need-based assistance and I have no job earnings. All of my income comes from the following exempt sources: ${ comma_and_list(formatted_need_based) }.
+  % elif job_income == 'No' and non_need_based.any_true() and need_based.all_false():
+  Please be advised that regardless of any merits to your case, I have no ability to pay this sum because I have no job earnings, and all of my income comes from the following exempt sources: ${ comma_and_list(formatted_non_need_based) }. 
+  % elif no_income:
+  Please be advised that regardless of any merits to your case, I have no ability to pay this sum because I have no income whatsoever.
+  % else:
+  ${ log("🤕reason_cannot_pay logic didn't work correctly") or "" }
+  % endif
+---
+id: proof
+question: |
+  It may help to include proof of this with your letter. 
+subquestion: |
+  <b>Will you include proof in your letter?</b>
+fields:
+  - "no label": proof
+    datatype: radio
+    choices:
+      - Yes
+      - No
+  - note: |
+      Proof could be a copy of a check stub, a bank statement going back 60 days, a copy of a check, or any document that shows where your income comes from. 
+# add logic to ask if proof will be included if job income = no, and any income = no,  and bank account = yes or no. Then follow up by asking 'Is all of your income used to meet basic living expenses? If so, do you want your letter to say so?'. This should then route to the long_term_income question. 
+---
+id: basic_living_expenses
+question: |
+  Is all of your income used to meet basic living expenses?
+subquestion: |
+  If so, your letter will say so. If you don't want your letter to say so, answer No.
+fields:
+  - "no label": basic_living_expenses
+    datatype: radio
+    choices:
+      - Yes
+      - No
+---
+id: long term income prospect
+question: |
+  Do you expect your income to stay the same for the long term future? 
+fields: 
+  - "no label": long_term_income
+    datatype: radio
+    choices:
+      - Yes
+      - No
+  - <b>Do you want your cover letter to say so?</b>: long_term_income_yes
+    datatype: radio
+    choices:
+      - Yes
+      - No
+    label above field: True
+    show if:
+      variable: long_term_income
+      is: Yes 
+---
+# this only appears if income exemption questions (job_income and any_income are No. bank_account can be either yes or no. This question follows long_term_income for either yes or no responses.)
+id: asset_exemptions
+mandatory: False
+continue button field: asset_exemptions
 question: |
   Next, let's see if any of your assets other than money are Exempt.
-subquestion: |
+---
+id: exempt assets - cars
+#continue button field: own_car
+question: |
   Do you own a car or other motor vehicle?
 fields:
   - "no label": own_car
-    datatype: yesnoradio
+    datatype: radio
+    choices:
+      - Yes
+      - No
+    label above field: True
+  - <b>Do you own more than one vehicle?</b>: multiple_cars
+    datatype: radio 
+    choices:
+      - Yes
+      - No
+    show if:
+      variable: own_car
+      is: Yes 
+    label above field: True
+  - note: |
+      Your motor vehicle assets may not be Exempt. 
+    show if: 
+      variable: multiple_cars
+      is: Yes
+  - <b>Is the vehicle your primary source of transportation?</b>: primary_transportation
+    datatype: radio
+    choices:
+      - Yes
+      - No
+    show if:
+      variable: multiple_cars
+      is: No
+    label above field: True
+  - note: |
+      Your motor vehicle assets may not be Exempt. 
+    show if: 
+      variable: primary_transportation
+      is: No
 ---
-#add logic that if own_car is 'Yes', ask this
-id: multiple_cars
-question: |
-  Do you own more than one vehicle?
-fields:
-  - "no label": multiple_cars
-    datatype: yesnoradio
-#add logic that if Yes, then  'your motor vehicle assets may not be Exempt'.
----
-#add logic that if multiple_cars is No, then ask this
-id: primary transportation
-question: |
-  Is the vehicle your primary source of transportation?
-fields:
-  - "no label": primary_transportation
-    datatype: yesnoradio
-#add logic that if No, 'your motor vehicle assets may not be Exempt.
----
-#Add logic that if primary_transportation is Yes, then ask this
+# not working
+#code: |
+#  if own_car == "No":
+#    undefine("multiple_cars")
+#---
 id: car_equity
 question: |
   How much Equity do you have in your motor vehicle?
@@ -636,16 +1065,22 @@ buttons:
   - More than $4,400: over_4k
   - $4,400 or less: under_4k
   - I do not know: unknown_car_equity
-#if exempt, the letter should say so.
+#if exempt (4,400 or less), the letter should say so. what does LHI display on the letter if the user enters I don't know? 
 ---
-#add logic that if car_equity is under 4k, ask this question
 id: car_collateral
 question: |
   Is your debt related to payments for your motor vehicle(s)? Or, did you use the motor vehicle(s) as "collateral" for the debt?
 fields: 
   - "no label": car_collateral 
-    datatype: yesnoradio
-#add logic that if Yes, 'Your motor vehicle is not Exempt if the debt is for the motor vehicle.'
+    datatype: radio
+    choices:
+      - Yes
+      - No
+  - note: |
+      Your motor vehicle is not Exempt if the debt is for the motor vehicle.
+    show if: 
+      variable: car_collateral
+      is: Yes
 ---
 id: real estate
 question: |
@@ -654,63 +1089,348 @@ subquestion: |
   Making mortgage payments counts as owning your home.
 fields:
   - "no label": real_estate
-    datatype: yesnoradio
-    #  if 'Yes': Do you own any real estate apart from your home? and THEN if 'No': Up to $360,000 of your Equity in your home is Exempt. If your home is a farm and you use it for agriculture, up to $900,000 of your Equity is Exempt. Is your home a farm, used for agriculture? If you live and work on your own farm, and own no other real estate, you can choose "no".
+    datatype: radio
+    choices: 
+      - Yes
+      - No
+  - <b>Do you own your home?</b>: own_home
+    datatype: radio
+    choices:
+      - Yes
+      - No
+    label above field: True
+    show if:
+      variable: real_estate 
+      is: Yes
+  - <b>Do you own any real estate apart from your home?</b>: other_real_estate
+    datatype: radio
+    choices:
+      - Yes
+      - No
+    label above field: True
+    show if:
+      variable: own_home
+      is: Yes
+  - Up to $360,000 of your Equity in your home is Exempt. If your home is a farm and you use it for agriculture, up to $900,000 of your Equity is Exempt. <b>Is your home a farm, used for agriculture?</b>: farm
+    datatype: radio
+    choices:
+      - Yes
+      - No
+    label above field: True
+    show if:
+      variable: other_real_estate
+      is: No
+  - <b>How much Equity do you have in your home?</b>: home_equity_farm_yes
+    datatype: radio
+    choices:
+      - More than $900,000 
+      - $900,000 or less 
+      - I do not know 
+    label above field: True
+    show if:
+      variable: farm
+      is: Yes
+  - <b>Is your debt related to payments for your home? Or, did you use your home as "collateral" for the debt?</b>: home_collateral
+    datatype: radio
+    choices:
+      - Yes
+      - No
+    label above field: True
+    show if:
+      variable: home_equity_farm_yes
+      is: $900,000 or less
+  - <b>How much Equity do you have in your home?</b>: home_equity_farm_no
+    datatype: radio
+    choices:
+      - More than $360,000 
+      - $360,000 or less 
+      - I do not know 
+    label above field: True
+    show if:
+      variable: farm
+      is: No
+  - <b>Is your debt related to payments for your home? Or, did you use your home as "collateral" for the debt?</b>: home_collateral
+    datatype: radio
+    choices:
+      - Yes
+      - No
+    label above field: True
+    show if:
+      variable: home_equity_farm_no
+      is: $360,000 or less
+  - note: |
+      Your home Equity is not Exempt.
+    show if: 
+      variable: home_collateral
+      is: Yes
 ---
-#add logic to ask this if real_estate is Yes
-id: own_home
+code: |
+  car_exempt = (
+      own_car == "Yes" and
+      multiple_cars == "No" and
+      primary_transportation == "Yes" and
+      car_equity in ["under_4k"] and
+      car_collateral == "No"
+  )
+---
+code: |
+  if real_estate == "No":
+      own_home = "No"
+---
+code: |
+  home_exempt = (
+      real_estate == "Yes" and
+      own_home == "Yes" and 
+      other_real_estate == "No" and 
+      ( 
+      (farm == "No" and home_equity_farm_no == "$360,000 or less" and home_collateral == "No") or 
+      (farm == "Yes" and home_equity_farm_yes == "$900,000 or less" and home_collateral == "No")
+      )
+  )
+---
+template: exempt_assets
+content: |
+  % if own_car == 'Yes' and own_home == 'Yes' and car_exempt and home_exempt: 
+  Furthermore, my home and motor vehicle are exempt from collection. 
+  % elif own_car == 'Yes' and own_home == 'Yes' and car_exempt and not home_exempt:
+  Furthermore, my motor vehicle is exempt from collection.
+  % elif own_car == 'Yes' and (real_estate == 'No' or (real_estate == 'Yes' and defined("own_home") and own_home == 'No')) and car_exempt:
+  Furthermore, I do not own a home and my motor vehicle is exempt from collection
+  % elif not car_exempt and own_home == 'Yes' and home_exempt:
+  Furthermore, my home is exempt from collection.
+  % elif own_car == 'Yes' and not car_exempt and (real_estate == 'No' or (real_estate == 'Yes' and defined("own_home") and own_home == 'No')):
+  Furthermore, I do not own a home.
+  % elif own_car == 'No' and own_home == 'Yes' and home_exempt:
+  Furthermore, my home is exempt from collection and I do not own a motor vehicle
+  % elif own_car == 'No' and own_home == 'Yes' and not home_exempt:
+  Furthermore, I do not own a motor vehicle.
+  % elif own_car == 'No' and (real_estate == 'No' or (real_estate == 'Yes' and defined("own_home") and own_home == 'No')):
+  Furthermore, I do not own a home or motor vehicle. 
+  % else:
+  ${ log("🤕exempt_assets logic didn't work correctly") or "" }
+  % endif
+---
+sets:
+  - other_parties[i].name.first
+  - other_parties[i].name.last
+  - other_parties[i].name.middle
+  - other_parties[i].name.suffix
+id: names of opposing parties
 question: |
-  Do you own your home?
+  % if user_started_case:
+  Name of ${ ordinal(i) } **defendant** or respondent in this
+  matter
+  % else:
+  Name of **plaintiff** or petitioner in this matter
+  % endif
 fields:
-  - "no label": own_home
-    datatype: yesnoradio
+  - code: |
+      other_parties[i].name_fields(person_or_business='unsure')
 ---
-#add logic to ask this if own_home is Yes
-id: other real estate
+id: original creditor
 question: |
-  Do you own any real estate apart from your home?
-fields:
-  - "no label": other_real_estate
-    datatype: yesnoradio
----
-#add logic to ask this if other_real_estate is NO
-id: farm
-question: |
-  Is your home a farm, used for agriculture?
+  Is the Plaintiff the "original creditor" for this debt?
 subquestion: |
-  Up to $360,000 of your Equity in your home is Exempt. If your home is a farm and you use it for agriculture, up to $900,000 of your Equity is Exempt.
+  ${ collapse_template(original_creditor_explanation) }
 fields:
-  - "no label": farm
+  - "no label": original_creditor
+    datatype: radio
+    choices:
+      - Yes
+      - No
+      - Not sure
+    label above field: True
+  - note: |
+      If the plaintiff is not the original creditor, they have to follow strict rules to prove they really own the debt. Try to talk to a lawyer about this. You should still finish making your Answer today. 
+      
+      If you try to talk to a lawyer before you serve and file your Answer, <b>make sure you meet the 20 day deadline!</b>
+    show if: 
+      variable: original_creditor
+      is: No
+  - note: |
+      If the plaintiff is not the original creditor, they have to follow strict rules to prove they really own the debt. Try to talk to a lawyer about this. You should still finish making your Answer today. 
+      
+      If you try to talk to a lawyer before you serve and file your Answer, <b>make sure you meet the 20 day deadline!</b>
+    show if: 
+      variable: original_creditor
+      is: Not sure
+---
+id: attorneys
+generic object: ALPeopleList
+question: |
+  Does ${ other_parties } have any attorneys?
+fields:
+  - no label: attorneys.there_are_any
     datatype: yesnoradio
 ---
-#add logic to ask this if Farm is Yes
-id: farm yes
+id: attorney fax number
+generic object: ALIndividual
 question: |
-  How much Equity do you have in your home?
-field: home_equity_farm_yes
-buttons:
-  - More than $900,000: more_than_900
-  - $900,000 or less: less_than_900
-  - I do not know: equity_unknown_farm_yes
----
-#add logic to ask this if Farm is NO
-id: farm no
-question: |
-  How much Equity do you have in your home?
-field: home_equity_farm_no
-buttons:
-  - More than $360,000: more_than_360
-  - $360,000 or less: less_than_360
-  - I do not know: equity_unknown_farm_no
----
-#add logic to ask this if farm is Yes AND equity is 900k or less OR if farm is No AND equity is 360k or less 
-id: collateral for home
-question: |
-  Is your debt related to payments for your home? Or, did you use your home as "collateral" for the debt?
+  What is ${noun_plural(attorneys)}'s fax number?
 fields:
-  - "no label": home_collateral
-    datatype: yesnoradio
-#add logic that if Yes to collateral, then 'your home Equity is not Exempt'.
+  - no label: x.fax_number
+validation code: |
+      if not phone_number_is_valid(x.fax_number):
+        validation_error("Please enter a fax number in the format (xxx) xxx-xxxx", field="x.fax_number")
+      x.fax_number = phone_number_formatted(x.fax_number)
+---
+id: service of process explained
+mandatory: False
+continue button field: service_of_process
+question: |
+  You need to give the other side a copy of your answers. This is called "Service of Process". 
+subquestion: |
+  The person who serves your Answer is the "Server." You can be the Server, or someone else can be the Server for you. If someone else is the Server, they need to be 18 or older. It's usually best for someone else to be the Server for you. If the plaintiff says he or she did not get the Answer, the Server can help prove it was Served.
+
+  The Server has to do 2 things:
+  
+  1. Deliver the Answer to the plaintiff or the plaintiff's lawyer (if there is one) by mail, fax, or in person.
+  
+  2. Sign an "Affidavit of Service" form <b>in front of a Notary Public</b>. An Affidavit is a sworn, written statement that you give to the court and the other party. An "Affidavit of Service" is an Affidavit that basically says, "I swear that I have served the Answer to the plaintiff."
+
+    The Server can't just sign the Affidavit of Service any time, anywhere. They need to first send a copy of the Answer. Then, sign the Affidavit in front of a Notary Public or court clerk, who will notarize it.
+
+  <b>DO NOT sign the Affidavit of Service UNLESS a Notary Public is there to witness it. Otherwise, it will not be valid, and you may lose the case.</b>
+---
+id: process server
+question: |
+  Who will be the process server?
+fields: 
+  - no label: process_server
+    datatype: radio
+    choices: 
+      - I will
+      - Someone else 
+      - Not sure yet
+    label above field: True
+  - note: |
+      Even though you do not know, the Affidavit of Service will still print out. It will say that the Answer was Served through the mail. That is because service by mail is usually easiest, and is most common.
+    show if:
+      variable: process_server
+      is: Not sure yet
+---
+id: service method
+question: |
+   How will the Answer be served?
+fields: 
+  - "no label": service_method
+    datatype: radio
+    choices:
+      - Mail 
+      - Fax 
+      - In Person 
+      - I don't know
+    label above field: True
+  - note: |
+      Even though you do not know, the Affidavit of Service will still print out. It will say that the Answer was Served through the mail. That is because service by mail is usually easiest, and is most common.
+    show if:
+      variable: service_method
+      is: I don't know
+---
+id: service by mail
+if: service_method in ["Mail", "In person", "I don't know"]
+question: |
+  Service by Mail
+fields: 
+  - What city will you mail the Answer from?: serve_mail
+    required: False
+    label above field: True
+---
+id: service by fax
+if: service_method == "Fax"
+question: |
+  Service by Fax
+fields: 
+  - What is the fax number you will send the Answer to?: serve_fax
+    required: False
+    label above field: True
+validation code: |
+      if not phone_number_is_valid(serve_fax):
+        validation_error("Please enter a fax number in the format (xxx) xxx-xxxx", field="serve_fax")    
+      serve_fax = phone_number_formatted(serve_fax)
+---
+id: service county
+question: |
+  In what county will you get the Affidavit of Service Notarized?
+fields:
+  - "no label": notary_county
+    code: sorted(the_courts.county_list())
+    required: False
+    label above field: True
+---
+id: server info
+continue button field: server_info
+question: |
+  % if process_server == "Someone else":
+  Tell us about the person who will serve the papers.
+  % endif
+fields:
+#  - What is your Server's name?: server.name.first
+#    datatype: text
+#    label above field: True
+  - ${ server.name.first }'s phone number: server_phone_number
+    required: False
+    label above field: True
+  - Do you know their address?: server_address_known
+    datatype: radio
+    choices:
+      - Yes
+      - No
+    label above field: True
+  - code: |
+     server.address_fields(country_code=AL_DEFAULT_COUNTRY, default_state=AL_DEFAULT_STATE, show_if={ "variable": "server_address_known", "is": "Yes" })    
+validation code: |
+  if not phone_number_is_valid(server_phone_number):
+    validation_error("Please enter a phone number in the format (xxx) xxx-xxxx", field="phone_number")
+  phone_number = phone_number_formatted(server_phone_number)
+
+#---
+#mandatory: True
+#code: |
+#  def get_service_description(service_method):
+#    if service_method in ["Mail", "I don't know"]:
+#      return "by mailing a true and correct copy to the following parties at the following address by placing the documents in the U.S. mail in the city of { serve_fax } with sufficient postage."
+#    elif service_method == "Fax":
+#      return "by faxing a true and correct copy to the following parties at the following fax number { serve_fax }, and waiting for the fax machine to print a confirmation that the documents were sent successfully."
+#    elif service_method == "In person":
+#      return "by delivering in person a true and correct copy to the following parties at the following address and either giving the documents to the attorney, the attorney's clerk or other person in charge of the office, or by leaving the documents in a conspicuous place."
+#    else:
+#      return "___________"
+
+#  service_description = get_service_description(service_method)
+#---
+#mandatory: True
+#code: |
+#  if service_method in ["Mail", "I don't know"]:
+#      service_description = f"by mailing a true and correct copy to the following parties at the following address by placing the documents in the U.S. mail in the city of {serve_mail} with sufficient postage."
+#  elif service_method == "Fax":
+#      service_description = f"by faxing a true and correct copy to the following parties at the following fax number {serve_fax}, and waiting for the fax machine to print a confirmation that the documents were sent successfully."
+#  elif service_method == "In person":
+#      service_description = "by delivering in person a true and correct copy to the following parties at the following address and either giving the documents to the attorney, the attorney's clerk or other person in charge of the office, or by leaving the documents in a conspicuous place."
+#  else:
+#      service_description = "___________"
+#---
+#mandatory: True
+#code: |
+#  if service_method in ["Mail", "I don't know"]:
+#      service_description = "by mailing a true and correct copy to the following parties at the following address by placing the documents in the U.S. mail in the city of {} with sufficient postage.".format(serve_mail)
+#  elif service_method == "Fax":
+#      service_description = "by faxing a true and correct copy to the following parties at the following fax number {}, and waiting for the fax machine to print a confirmation that the documents were sent successfully.".format(serve_fax)
+#  elif service_method == "In person":
+#      service_description = "by delivering in person a true and correct copy to the following parties at the following address and either giving the documents to the attorney, the attorney's clerk or other person in charge of the office, or by leaving the documents in a conspicuous place."
+#  else:
+#      service_description = "___________"
+#---
+#id: debug_service_description
+#question: |
+#  Service description: {{ service_description }}
+#continue button field: debug_continue
+---
+mandatory: True
+question: |
+  Give us your feedback
+subquestion: |
+  ${ only_once_review_widget() }
 ---
 id: preview answer_to_complaint_aos
 question: |
@@ -743,119 +1463,262 @@ event: review_answer_to_complaint_aos
 question: |
   Review your answers
 review:
-  - Edit: trial_court_district
+  - raw html: |
+      ${ start_accordion('Filing Court') }  
+  - html: |
+      <div class="court-info">
+        <strong>Court Address:</strong>
+        <p>${ my_court.address.block().replace('[NEWLINE]', '<br>') }</p>
+      </div>
+  - label: Edit
+    fields:
+      - the_county
+      - follow up: 
+          - my_court
     button: |
-      **Trial court district**:
-      ${ trial_court_district }
+      **County**:
+      ${ the_county }
+      
   - Edit: docket_number
     button: |
-      **Docket number**:
+      **Case number**:
       ${ docket_number }
-  - Edit: the_county
-    button: |
-      **The county**:
-      ${ the_county }
-  - Edit: attorneys.revisit
-    button: |
-      **Attorneys**
-
-      % for item in attorneys:
-        * ${ item }
-      % endfor
-  - Edit: date_answer
-    button: |
-      **Date answer**:
-      ${ date_answer }
-  - Edit: other_parties.revisit
-    button: |
-      **Other parties**
-
-      % for item in other_parties:
-        * ${ item }
-      % endfor
+  - raw html: |
+      ${ next_accordion('Your Information') }
   - Edit: users.revisit
     button: |
-      **Users**
+      **Edit your name, address, and phone Number:**
 
       % for item in users:
         * ${ item }
       % endfor
-  - Edit: user_address
+  - raw html: |
+      ${ next_accordion('Plaintiff') }
+  - Edit: other_parties.revisit
     button: |
-      **User address**:
-      ${ user_address }
-  - Edit: user_city_state_zip
+      **Add or edit name, address, and fax Number for:**
+
+      % for item in other_parties:
+        * ${ item } 
+      % endfor
+  - label: Edit
+    fields:
+      - recompute:
+          - original_creditor
     button: |
-      **User city state zip**:
-      ${ user_city_state_zip }
-  - Edit: admit
+      **Original Creditor:**
+      ${ word(original_creditor) }
+  - Edit: attorneys.revisit
     button: |
-      **Admit**:
-      ${ admit }
-  - Edit: deny
-    button: |
-      **Deny**:
-      ${ deny }
-  - Edit: insufficient_info
-    button: |
-      **Insufficient info**:
-      ${ insufficient_info }
-  - Edit: defense_insufficient_service
-    button: |
-      **Defense insufficient service**:
-      ${ word(yesno(defense_insufficient_service)) }
-  - Edit: defense_wrong_person
-    button: |
-      **Defense wrong person**:
-      ${ word(yesno(defense_wrong_person)) }
-  - Edit: defense_paid
-    button: |
-      **Defense paid**:
-      ${ word(yesno(defense_paid)) }
-  - Edit: affirmative_defense4
-    button: |
-      **Affirmative defense4**:
-      ${ word(yesno(affirmative_defense4)) }
-  - Edit: defense_not_creditor
-    button: |
-      **Defense not creditor**:
-      ${ word(yesno(defense_not_creditor)) }
-  - Edit: defense_bankruptcy
-    button: |
-      **Defense bankruptcy**:
-      ${ word(yesno(defense_bankruptcy)) }
-  - Edit: defense_credit_card
-    button: |
-      **Defense credit card**:
-      ${ word(yesno(defense_credit_card)) }
-  - Edit: affirmative_defense8
-    button: |
-      **Affirmative defense8**:
-      ${ word(yesno(affirmative_defense8)) }
-  - Edit: defense_unagreeable_charges
-    button: |
-      **Defense unagreeable charges**:
-      ${ word(yesno(defense_unagreeable_charges)) }
-  - Edit: defense_dont_know_plaintiff
-    button: |
-      **Defense dont know plaintiff**:
-      ${ word(yesno(defense_dont_know_plaintiff)) }
-  - Edit: defense_SOL
-    button: |
-      **Defense sol**:
-      ${ word(yesno(defense_SOL)) }
-  - Edit: claims_barred
-    button: |
-      **Claims barred**:
-      ${ word(yesno(claims_barred)) }
+      **Plaintiff's Attorney:**
+
+      % for item in attorneys:
+        * ${ item }
+      % endfor
+  - raw html: |
+      ${ next_accordion('Debt Information') }
   - Edit: account_number
     button: |
-      **Account number**:
+      **Account number:**
       ${ account_number }
-  - Edit: reason_cannot_pay
+      
+  - label: Edit
+    fields:
+      - admit
     button: |
-      **Reason cannot pay**:
-      ${ reason_cannot_pay }
+      **Answers:**
+      
+      - **Admit Allegations:** ${ admit }
+      - **Deny Allegations:** ${ deny }
+      - **Insufficient Info to Admit or Deny Allegations:** ${ insufficient_info }
+      
+  - raw html: |
+      ${ next_accordion('Affirmative Defenses') }
+  - label: Edit 
+    fields:
+      - defense_insufficient_service
+    button: |
+      - **Service of process was insufficient**: ${ word(yesno(defense_insufficient_service)) }
+      - **Plaintiff has sued the wrong person**: ${ word(yesno(defense_wrong_person)) }
+      - **I have already paid the debt at issue**: ${ word(yesno(defense_paid)) }
+      - **I don't owe all of the money alleged**: ${ word(yesno(defense_dont_owe)) }
+      - **Plaintiff is not my creditor**: ${ word(yesno(defense_not_creditor)) }
+      - **The debt at issue has been discharged by bankruptcy**: ${ word(yesno(defense_bankruptcy)) }
+      - **I did not sign up for this credit card**: ${ word(yesno(defense_credit_card)) }
+      - **Someone used my name and identity without my permission**: ${ word(yesno(defense_id_theft)) }
+      - **There are charges on this account that I did not agree to**: ${ word(yesno(defense_unagreeable_charges)) }
+      - **I do not recognize the Plaintiff and I never borrowed money from the Plaintiff**: ${ word(yesno(defense_dont_know_plaintiff)) }
+  - raw html: |
+      ${ next_accordion('Statute of Limitations') }
+  - label: Edit
+    fields:
+      - type_of_debt
+#      - follow up:
+#        - last_action_credit_card
+    button: |
+      **Type of Debt:** 
+      ${ type_of_debt }
+
+       % if defined("defense_SOL"):
+       - **Plaintiff’s claims are barred by the applicable statute of limitations** 
+       % else:
+       - **Claims are not barred by the statute of limitations** 
+       % endif
+## this is working but when I edit the response, it's not updating. adding follow up or recompute makes the page loop.
+      
+#      % if last_action_credit_card == '6_or_more_years':
+#      **Plaintiff’s claims are barred by the applicable statute of limitations** 
+#      % if last_action_cell_phone == '2_or_more_years':
+#      **Plaintiff’s claims are barred by the applicable statute of limitations** 
+#      % if last_action_car_loan == '4_or_more_years':
+#      **Plaintiff’s claims are barred by the applicable statute of limitations** 
+#      % if last_action_other == '6_or_more_years':
+#      **Plaintiff’s claims are barred by the applicable statute of limitations** 
+#      % else:
+#      **Claims are not barred by the statute of limitations**
+#      % endif
+#      % endif
+#      % endif
+#      % endif
+  - raw html: |
+      ${ next_accordion('Income Exemptions') }
+  - Edit: need_based
+    button: |
+      **Government Assistance:**
+      
+      - **Need Based:**
+      % if "Other need based" in need_based.true_values():
+        ${ ", ".join([item if item != "Other need based" else other_exempt_need_based for item in need_based.true_values()]) }
+        % else:
+          ${ ", ".join(need_based.true_values()) }
+         % endif
+  - Edit: non_need_based
+    button: |
+      
+      - **Non-Need Based:**
+      % if "Other non-need based" in non_need_based.true_values():
+       ${ ", ".join([item if item != "Other non-need based" else other_exempt_non_need for item in non_need_based.true_values()]) }
+       % else:
+         ${ ", ".join(non_need_based.true_values()) }
+       % endif
+
+#  - Edit: other_exempt
+#    button: |
+#      **Other exempt income**:
+#      ${ other_exempt }
+#    show if: non_need_based['other_exempt']
+  - label: Edit
+    fields:
+      - job_income
+      - follow up:
+        - any_income
+    button: |
+      **Job Income:** 
+      ${ job_income }
+      
+      % if job_income == 'No':
+      **Any Income:** ${ any_income }
+      
+      % if any_income == 'No':
+      **Money in the bank that is NOT from exempt sources:** ${ bank_account }
+      % else: 
+      % if job_income == 'Yes':  
+      Not applicable
+      % endif
+      % endif
+      % endif
+      
+  - Edit: long_term_income
+    button: |
+      **Income Prospects:**
+      ${ word(long_term_income) }
+#  % if show_asset_exemptions():
+  - raw html: |
+      ${ next_accordion('Asset Exemptions') }
+  - label: Edit
+    fields:
+      - own_car
+      - follow up:
+          - multiple_cars
+  - Edit: own_car
+    button: |
+      **Vehicles:**
+
+      - **Do you own a vehicle?:**
+      ${ own_car }  
+      % if own_car == 'Yes':
+      - **Do you own more than one vehicle?:** ${ multiple_cars }  
+      % if multiple_cars == 'No':
+      - **Is the vehicle your primary source of transportation?:** ${ primary_transportation }
+      % else: 
+      % if own_car == 'No':  
+      Not applicable
+      % endif
+      % endif
+      % endif
+
+  - label: Edit
+    fields:
+      - real_estate
+      - follow up:
+          - own_home
+    button: | 
+      **Real Estate:**
+      
+      - **Do you own any real estate?:** 
+      ${ word(real_estate) }
+      % if real_estate == 'Yes':
+      - **Do you own your home?:** ${ own_home }
+      % if own_home == 'Yes':
+      - **Do you own any other real estate?:** ${ other_real_estate }
+      % if other_real_estate == 'No':
+      - **Is your home used for farm or agriculture?:** ${ word(farm) } 
+      % else:
+      % if real_estate == 'No':
+      Not Applicable
+      % endif
+      % endif
+      % endif
+      % endif
+#      % endif
+#      % endif
+
+  # the 'farm' string is erroring on me - seeking an else after the if
+  #    % if farm == 'Yes':
+  #    - **Home equity (if farm):** ${ home_equity_farm_yes if farm }
+  #    % if farm == 'No':
+  #    - **Home equity (if not farm):** ${ home_equity_farm_no }
+
+  - raw html: |
+      ${ next_accordion('Service of Process') }
+  - Edit: process_server
+    button: |
+      **Who will serve the papers?**
+      ${ process_server }
+
+  - label: Edit
+    fields:
+      - service_method
+      - follow up:
+          - serve_mail
+          - serve_fax
+    button: |
+      **Service method**: ${ service_method }
+
+      % if service_method == 'Fax':
+      **Fax Number:** ${ serve_fax }
+      % else: 
+      % if service_method in ["Mail", "In person", "I don't know"]: 
+      **City from which the Answer will be mailed:** ${ serve_mail }
+      % endif
+      % endif
+
+  - Edit: notary_county
+    button: |
+      **Notary county:**
+      ${ notary_county }
+  - raw html: |
+      ${ end_accordion() }
 ---
 continue button field: attorneys.revisit
 question: |
@@ -883,7 +1746,7 @@ confirm: True
 ---
 continue button field: other_parties.revisit
 question: |
-  Edit other_parties
+  Edit Plaintiff
 subquestion: |
   ${ other_parties.table }
 
@@ -894,10 +1757,14 @@ rows: other_parties
 columns:
   - Name: |
       row_item.name.full() if defined("row_item.name.first") else ""
+  - Address: |
+      row_item.address.block() if defined("row_item.address.address") else ""
+#  - Address: |
+#      row_item.address.block() if row_item.show_address() and defined("row_item.address.address") else ""
 edit:
   - name.first
+  - address.address
 confirm: True
-
 ---
 continue button field: users.revisit
 question: |
@@ -913,7 +1780,7 @@ columns:
   - Name: |
       row_item.name.full() if defined("row_item.name.first") else ""
   - Address: |
-      row_item.address.block() if defined("row_item.address.address") else ""
+      row_item.address.address if defined("row_item.address.address") else ""
   - Phone number: |
       row_item.phone_number if defined("row_item.phone_number") else ""
 edit:
@@ -970,20 +1837,28 @@ attachment:
   filename: answer_to_complaint_aos
   variable name: answer_to_complaint_aos[i]
   skip undefined: True
-  pdf template file: answer_to_complaint_aos.pdf
+  docx template file: answer_to_complaint_aos.docx
   fields:
-      - "trial_court_district": ${ trial_court_district }
-      - "trial_court_district": ${ trial_court_district }
-      - "docket_number": ${ docket_number }
-      - "docket_number": ${ docket_number }
-      - "the_county": ${ the_county }
-      - "the_county": ${ the_county }
-      - "attorneys_name": ${ attorneys[0] }
-      - "attorneys_name": ${ attorneys[0] }
-      - "attorneys_name": ${ attorneys[0] }
+#      - "service_description": ${ service_description }
+#      - "trial_court_district": ${ trial_court_district }  
+#      - "docket_number": ${ docket_number }
+#      - "the_county": ${ the_county }
+#      - "notary_county": ${ notary_county }
+#      - "users1_name": ${ users[0] }
+#      - "server_name": ${ users[0] if process_server == "I will" else server.name.full() }
+#      - "server_address_address": ${ users[0].address.line_one() if process_server == "I will" else server.address.line_one() }
+#      - "server_address_line_two": ${ users[0].address.line_two() if process_server == "I will" else server.address.line_two() }
+#      - "server_phone_number": ${ users[0].phone_number if process_server == "I will" else server_phone_number }
+#      - "service_method": "${ 'Mail' if process_server == 'Not sure yet' or service_method == \"I don't know\" else service_method }"
+      - "service_description": "${ 
+    'by mailing a true and correct copy to the following parties at the following address by placing the documents in the U.S. mail in the city of ' + serve_mail + ' with sufficient postage:' 
+    if service_method in ['Mail', \"I don't know\"] else 
+    ('by faxing a true and correct copy to the following parties at the following fax number ' + serve_fax + ', and waiting for the fax machine to print a confirmation that the documents were sent successfully:' 
+    if service_method == 'Fax' else 
+    'by delivering in person a true and correct copy to the following parties at the following address and either giving the documents to the attorney, the attorney\\'s clerk or other person in charge of the office, or by leaving the documents in a conspicuous place:')
+  }"
+#      - "attorneys_name": ${ attorneys[0] }
       - "attorneys_address_address": ${ attorneys[0].address.address }
-      - "attorneys_address_address": ${ attorneys[0].address.address }
-      - "attorneys_address_line_two": ${ attorneys[0].address.line_two() }
       - "attorneys_address_line_two": ${ attorneys[0].address.line_two() }
 ---
 attachment:
@@ -993,91 +1868,53 @@ attachment:
   skip undefined: True
   pdf template file: answer_to_complaint_form.pdf
   fields:
-      - "trial_court_district": ${ trial_court_district }
-      - "trial_court_district": ${ trial_court_district }
-      - "docket_number": ${ docket_number }
+      - "trial_court_district": ${ trial_court_district } 
       - "docket_number": ${ docket_number }
       - "the_county": ${ the_county }
-      - "the_county": ${ the_county }
-      - "date_answer": ${ date_answer }
-      - "date_answer": ${ date_answer }
       - "date_answer": ${ date_answer }
       - "other_parties1_name": ${ other_parties[0] }
-      - "other_parties1_name": ${ other_parties[0] }
-      - "other_parties1_name": ${ other_parties[0] }
-      - "user_name": ${ users[0] }
       - "users1_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "users1_name": ${ users[0] }
-      - "users1_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "users1_name": ${ users[0] }
-      - "user_address": ${ user_address }
-      - "user_address": ${ user_address }
-      - "users1_address_address": ${ users[0].address.address }
-      - "users1_address_address": ${ users[0].address.address }
-      - "user_city_state_zip": ${ user_city_state_zip }
-      - "user_city_state_zip": ${ user_city_state_zip }
-      - "users1_address_line_two": ${ users[0].address.line_two() }
+      - "users1_address_line_one": ${ users[0].address.line_one() }
       - "users1_address_line_two": ${ users[0].address.line_two() }
       - "users1_phone_number": ${ users[0].phone_number }
-      - "user_phone": ${ users[0].phone_number }
-      - "users1_phone_number": ${ users[0].phone_number }
-      - "user_phone": ${ users[0].phone_number }
       - "admit": ${ admit }
       - "deny": ${ deny }
       - "insufficient_info": ${ insufficient_info }
       - "defense_insufficient_service": ${ defense_insufficient_service }
       - "defense_wrong_person": ${ defense_wrong_person }
       - "defense_paid": ${ defense_paid }
-      - "affirmative_defense4": ${ affirmative_defense4 }
+      - "defense_dont_owe": ${ defense_dont_owe }
       - "defense_not_creditor": ${ defense_not_creditor }
       - "defense_bankruptcy": ${ defense_bankruptcy }
       - "defense_credit_card": ${ defense_credit_card }
-      - "affirmative_defense8": ${ affirmative_defense8 }
+      - "defense_id_theft": ${ defense_id_theft }
       - "defense_unagreeable_charges": ${ defense_unagreeable_charges }
       - "defense_dont_know_plaintiff": ${ defense_dont_know_plaintiff }
-      - "defense_SOL": ${ defense_SOL }
-      - "claims_barred": ${ claims_barred }
+      - "defense_SOL": ${ defense_SOL } 
+      - "date_answer": ${ today() }
 ---
 attachment:
   name: answer to complaint letter
   filename: answer_to_complaint_letter
   variable name: answer_to_complaint_letter[i]
   skip undefined: True
-  pdf template file: answer_to_complaint_letter.pdf
+  docx template file: answer_to_complaint_debt_collection_docx_template.docx 
+  tagged pdf: True
   fields:
       - "attorneys_name": ${ attorneys[0] }
-      - "attorneys_name": ${ attorneys[0] }
-      - "attorneys_name": ${ attorneys[0] }
-      - "attorneys_address_address": ${ attorneys[0].address.address }
       - "attorneys_address_address": ${ attorneys[0].address.address }
       - "attorneys_address_line_two": ${ attorneys[0].address.line_two() }
-      - "attorneys_address_line_two": ${ attorneys[0].address.line_two() }
-      - "date_answer": ${ date_answer }
-      - "date_answer": ${ date_answer }
-      - "date_answer": ${ date_answer }
-      - "other_parties1_name": ${ other_parties[0] }
-      - "other_parties1_name": ${ other_parties[0] }
-      - "other_parties1_name": ${ other_parties[0] }
-      - "user_name": ${ users[0] }
-      - "users1_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "users1_name": ${ users[0] }
-      - "users1_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "user_name": ${ users[0] }
-      - "users1_name": ${ users[0] }
       - "attorneys_fax_number": ${ attorneys[0].fax_number }
+      - "date_answer": ${ today() }
+      - "other_parties1_name": ${ other_parties[0] }
+      - "users1_name": ${ users[0] }
       - "account_number": ${ account_number }
-      - "reason_cannot_pay": ${ reason_cannot_pay }
+      - "need_based": ${ need_based }
+      - "non_need_based": ${ non_need_based }
+      - "no_income": ${ no_income }
+
+
+#car_equity: if exempt (4,400 or less), the letter should say so. what does LHI display on the letter if the user enters I don't know? 
 
 
 
